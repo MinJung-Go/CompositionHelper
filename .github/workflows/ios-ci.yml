@@ -75,23 +75,16 @@ jobs:
   validate:
     name: Validate Project Files
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-    
-    - name: Validate README.md
-      uses: davidanson/actionshub-markdownlint-action@v1
-      with:
-        files: .
-        config: .github/linters/.markdown-lint.yml
-      continue-on-error: true
-    
-    - name: Check for TODO/FIXME comments
-      run: |
-        grep -r "TODO\|FIXME" Sources/ || echo "No TODO/FIXME comments found"
-    
-    - name: Check file sizes
-      run: |
-        echo "File sizes:"
-        find Sources -name "*.swift" -exec ls -lh {} \; | awk '{print $9, $5}'
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Check for TODO/FIXME comments
+        run: |
+          grep -r "TODO\|FIXME" Sources/ || echo "No TODO/FIXME comments found"
+
+      - name: Check file sizes
+        run: |
+          echo "File sizes:"
+          find Sources -name "*.swift" -exec ls -lh {} \; | awk '{print $9, $5}'
