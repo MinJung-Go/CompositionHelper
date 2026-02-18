@@ -22,30 +22,13 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Install Gradle
-        shell: bash
+      - name: Build with Gradle
         run: |
-          wget -q https://services.gradle.org/distributions/gradle-8.2-bin.zip
-          unzip -q gradle-8.2-bin.zip
-          echo "$PWD/gradle-8.2/bin" >> $GITHUB_PATH
-          gradle --version
-
-      - name: Build Debug APK
-        shell: bash
-        run: gradle assembleDebug --stacktrace --no-daemon
-
-      - name: Build Release APK
-        shell: bash
-        run: gradle assembleRelease --stacktrace --no-daemon
-
-      - name: Get APK info
-        shell: bash
-        run: |
-          echo "Debug APK:"
-          ls -lh app/build/outputs/apk/debug/ || echo "No debug APK found"
-          echo ""
-          echo "Release APK:"
-          ls -lh app/build/outputs/apk/release/ || echo "No release APK found"
+          # Initialize Gradle wrapper
+          gradle wrapper --gradle-version 8.2
+          
+          # Build APKs
+          ./gradlew assembleDebug assembleRelease --stacktrace --no-daemon
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
