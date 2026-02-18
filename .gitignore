@@ -2,6 +2,8 @@
 .gradle/
 build/
 !gradle/wrapper/gradle-wrapper.jar
+gradle-8.2-bin.zip
+gradle-8.2/
 
 # Local configuration file (sdk path, etc)
 local.properties
