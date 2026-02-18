@@ -1,0 +1,40 @@
+<resources>
+    <string name="app_name">构图辅助</string>
+    <string name="camera_permission_rationale">需要相机权限来拍摄照片并进行构图分析</string>
+    <string name="storage_permission_rationale">需要存储权限来访问相册中的照片</string>
+    <string name="camera_permission_denied">相机权限被拒绝，请在设置中开启</string>
+    <string name="storage_permission_denied">存储权限被拒绝，请在设置中开启</string>
+    <string name="select_photo_or_camera">选择照片或拍照</string>
+    <string name="take_photo">拍照</string>
+    <string name="select_from_gallery">从相册选择</string>
+    <string name="auto_analyze">自动分析构图</string>
+    <string name="analyzing">分析中...</string>
+    <string name="guide_opacity">辅助线透明度</string>
+    <string name="guide_color">辅助线颜色</string>
+    
+    <!-- 构图类型 -->
+    <string name="composition_rule_of_thirds">三分法</string>
+    <string name="composition_center">中心构图</string>
+    <string name="composition_diagonal">对角线</string>
+    <string name="composition_frame">框架构图</string>
+    <string name="composition_leading_lines">引导线</string>
+    <string name="composition_s_curve">S形曲线</string>
+    <string name="composition_golden_spiral">黄金螺旋</string>
+    <string name="composition_golden_triangle">黄金三角</string>
+    <string name="composition_symmetry">对称构图</string>
+    <string name="composition_negative_space">负空间</string>
+    <string name="composition_pattern_repeat">模式重复</string>
+    <string name="composition_tunnel">隧道式</string>
+    <string name="composition_split">分割构图</string>
+    <string name="composition_perspective">透视焦点</string>
+    <string name="composition_invisible_line">隐形线</string>
+    <string name="composition_fill_frame">充满画面</string>
+    <string name="composition_low_angle">低角度</string>
+    <string name="composition_high_angle">高角度</string>
+    <string name="composition_depth_layer">深度层次</string>
+    
+    <!-- 构图分类 -->
+    <string name="category_classic">经典</string>
+    <string name="category_modern">现代</string>
+    <string name="category_perspective">视角</string>
+</resources>
