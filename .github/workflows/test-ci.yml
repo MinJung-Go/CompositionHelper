@@ -1,0 +1,13 @@
+name: Test CI
+
+on:
+  push:
+    branches: [ android-apk ]
+
+jobs:
+  test:
+    name: Simple Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo Hello
+        run: echo "Hello from GitHub Actions!"
