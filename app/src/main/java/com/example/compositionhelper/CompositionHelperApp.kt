@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
+import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -83,7 +84,7 @@ fun CompositionType.getCategory(): CompositionCategory {
         RULE_OF_THIRDS, CENTER, DIAGONAL, FRAME, LEADING_LINES, S_CURVE, GOLDEN_SPIRAL -> CompositionCategory.CLASSIC
         GOLDEN_TRIANGLE, SYMMETRY, NEGATIVE_SPACE, PATTERN_REPEAT, TUNNEL, SPLIT, PERSPECTIVE -> CompositionCategory.MODERN
         INVISIBLE_LINE, FILL_FRAME, LOW_ANGLE, HIGH_ANGLE, DEPTH_LAYER -> CompositionCategory.PERSPECTIVE
-        else -> CompositionCategory.CLASSIC  // Fallback
+
     }
 }
 
@@ -182,7 +183,7 @@ fun CompositionHelperApp(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Image,
+                                imageVector = Icons.Filled.Photo,
                                 contentDescription = null,
                                 modifier = Modifier.size(60.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -300,7 +301,7 @@ fun CompositionHelperApp(
                         onClick = { galleryLauncher.launch("image/*") },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Icon(Icons.Filled.Image, contentDescription = null)
+                        Icon(Icons.Filled.Photo, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
                         Text("相册")
                     }
