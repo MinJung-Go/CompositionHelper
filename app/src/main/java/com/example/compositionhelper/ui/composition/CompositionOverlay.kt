@@ -80,9 +80,9 @@ fun drawCompositionOverlay(
     val paint = Paint().apply {
         color = AndroidColor.argb(
             (lineOpacity * 255).toInt(),
-            lineColor.red,
-            lineColor.green,
-            lineColor.blue
+            (lineColor.red * 255).toInt(),
+            (lineColor.green * 255).toInt(),
+            (lineColor.blue * 255).toInt()
         )
         strokeWidth = 4f
         style = Paint.Style.STROKE
@@ -412,7 +412,7 @@ private fun drawAngleView(canvas: Canvas, width: Float, height: Float, paint: Pa
         path.addArc(
             centerX, height * 0.2f,
             width * 0.3f, 0f,
-            220f, 100f, false
+            220f, 100f
         )
         canvas.drawPath(path, paint)
     } else {
@@ -425,7 +425,7 @@ private fun drawAngleView(canvas: Canvas, width: Float, height: Float, paint: Pa
         path.addArc(
             centerX, height * 0.8f,
             width * 0.3f, 0f,
-            40f, 100f, false
+            40f, 100f
         )
         canvas.drawPath(path, paint)
     }
@@ -436,7 +436,7 @@ private fun drawDepthLayer(canvas: Canvas, width: Float, height: Float, paint: P
     // 前景层
     val foregroundHeight = height * 0.25f
     val foregroundPaint = Paint(paint).apply {
-        alpha = 0.15f
+        alpha = (0.15f * 255).toInt()
         style = Paint.Style.FILL
     }
     canvas.drawRect(
@@ -454,7 +454,7 @@ private fun drawDepthLayer(canvas: Canvas, width: Float, height: Float, paint: P
     val midHeight = height * 0.25f
     val midY = height * 0.35f
     val midPaint = Paint(paint).apply {
-        alpha = 0.1f
+        alpha = (0.1f * 255).toInt()
         style = Paint.Style.FILL
     }
     canvas.drawRect(
@@ -470,7 +470,7 @@ private fun drawDepthLayer(canvas: Canvas, width: Float, height: Float, paint: P
     val backHeight = height * 0.25f
     val backY = height * 0.1f
     val backPaint = Paint(paint).apply {
-        alpha = 0.05f
+        alpha = (0.05f * 255).toInt()
         style = Paint.Style.FILL
     }
     canvas.drawRect(

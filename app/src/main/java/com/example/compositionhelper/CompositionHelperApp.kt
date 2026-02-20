@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.border
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -180,7 +181,7 @@ fun CompositionHelperApp(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Image,
+                                imageVector = Icons.Filled.Image,
                                 contentDescription = null,
                                 modifier = Modifier.size(60.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -261,7 +262,7 @@ fun CompositionHelperApp(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("颜色: ", modifier = Modifier.weight(1f))
-                    listOf(Color.Yellow, Color.Red, Color.Blue, Color.White, Color.Green, Color.Orange, Color.Purple).forEach { color ->
+                    listOf(Color.Yellow, Color.Red, Color.Blue, Color.White, Color.Green, Color(0xFFFFA500), Color(0xFF800080)).forEach { color ->
                         Box(
                             modifier = Modifier
                                 .size(30.dp)
@@ -289,7 +290,7 @@ fun CompositionHelperApp(
                         onClick = { cameraLauncher.launch(null) },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Icon(Icons.Default.Camera, contentDescription = null)
+                        Icon(Icons.Filled.Camera, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
                         Text("拍照")
                     }
@@ -298,7 +299,7 @@ fun CompositionHelperApp(
                         onClick = { galleryLauncher.launch("image/*") },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Icon(Icons.Default.Image, contentDescription = null)
+                        Icon(Icons.Filled.Image, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
                         Text("相册")
                     }
