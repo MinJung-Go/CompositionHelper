@@ -81,9 +81,9 @@ enum class CompositionCategory(val displayName: String) {
 // 获取构图类型属于哪个分类
 fun CompositionType.getCategory(): CompositionCategory {
     return when (this) {
-        RULE_OF_THIRDS, CENTER, DIAGONAL, FRAME, LEADING_LINES, S_CURVE, GOLDEN_SPIRAL -> CompositionCategory.CLASSIC
-        GOLDEN_TRIANGLE, SYMMETRY, NEGATIVE_SPACE, PATTERN_REPEAT, TUNNEL, SPLIT, PERSPECTIVE -> CompositionCategory.MODERN
-        INVISIBLE_LINE, FILL_FRAME, LOW_ANGLE, HIGH_ANGLE, DEPTH_LAYER -> CompositionCategory.PERSPECTIVE
+        CompositionType.RULE_OF_THIRDS, CompositionType.CENTER, CompositionType.DIAGONAL, CompositionType.FRAME, CompositionType.LEADING_LINES, CompositionType.S_CURVE, CompositionType.GOLDEN_SPIRAL -> CompositionCategory.CLASSIC
+        CompositionType.GOLDEN_TRIANGLE, CompositionType.SYMMETRY, CompositionType.NEGATIVE_SPACE, CompositionType.PATTERN_REPEAT, CompositionType.TUNNEL, CompositionType.SPLIT, CompositionType.PERSPECTIVE -> CompositionCategory.MODERN
+        CompositionType.INVISIBLE_LINE, CompositionType.FILL_FRAME, CompositionType.LOW_ANGLE, CompositionType.HIGH_ANGLE, CompositionType.DEPTH_LAYER -> CompositionCategory.PERSPECTIVE
 
     }
 }
