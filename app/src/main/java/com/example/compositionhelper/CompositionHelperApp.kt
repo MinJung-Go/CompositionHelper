@@ -83,6 +83,7 @@ fun CompositionType.getCategory(): CompositionCategory {
         RULE_OF_THIRDS, CENTER, DIAGONAL, FRAME, LEADING_LINES, S_CURVE, GOLDEN_SPIRAL -> CompositionCategory.CLASSIC
         GOLDEN_TRIANGLE, SYMMETRY, NEGATIVE_SPACE, PATTERN_REPEAT, TUNNEL, SPLIT, PERSPECTIVE -> CompositionCategory.MODERN
         INVISIBLE_LINE, FILL_FRAME, LOW_ANGLE, HIGH_ANGLE, DEPTH_LAYER -> CompositionCategory.PERSPECTIVE
+        else -> CompositionCategory.CLASSIC  // Fallback
     }
 }
 
