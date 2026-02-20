@@ -50,14 +50,11 @@ fun ImageWithCompositionOverlay(
             )
         } ?: run {
             // 如果创建失败，只显示原图
-            android.graphics.Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)?.let { copyBitmap ->
-                copyBitmap.copyPixelsFromBitmap(bitmap)
-                Image(
-                    bitmap = copyBitmap.asImageBitmap(),
+            Image(
+                    bitmap = bitmap.asImageBitmap(),
                     contentDescription = null,
                     modifier = modifier
                 )
-            }
         }
 }
 

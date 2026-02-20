@@ -373,7 +373,7 @@ fun CompositionTypeButton(
             // 推荐标记
             if (isRecommended) {
                 Icon(
-                    imageVector = Icons.Default.Star,
+                    imageVector = Icons.Filled.Star,
                     contentDescription = null,
                     modifier = Modifier
                         .size(16.dp)
