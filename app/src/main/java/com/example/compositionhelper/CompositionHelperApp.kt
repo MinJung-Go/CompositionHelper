@@ -289,7 +289,7 @@ fun CompositionHelperApp(
                         onClick = { cameraLauncher.launch(null) },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Icon(Icons.Default.CameraAlt, contentDescription = null)
+                        Icon(Icons.Default.Camera, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
                         Text("拍照")
                     }
