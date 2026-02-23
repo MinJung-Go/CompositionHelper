@@ -98,8 +98,8 @@ cd CompositionHelper
 
 ```bash
 git fetch origin
-git checkout main
-git pull origin main
+git checkout master
+git pull origin master
 ```
 
 ### ▶️ 运行到设备
@@ -167,7 +167,7 @@ UI 框架: Jetpack Compose
 CompositionHelper/
 ├── app/
 │   └── src/
-│       └── main/
+│       └── master/
 │           ├── java/com/example/compositionhelper/
 │           │   ├── MainActivity.kt                    # 主 Activity
 │           │   ├── CompositionHelperApp.kt            # 主应用入口
@@ -718,5 +718,5 @@ copies or substantial portions of the Software.
 
 **最后更新**: 2026-02-23
 **当前版本**: 1.0.0
-**分支**: main (Android 主版本)
+**分支**: master (Android 主版本)
 **iOS 分支**: ios

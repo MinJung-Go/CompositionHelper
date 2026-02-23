@@ -13,7 +13,7 @@
 
 | 分支 | 平台 | 技术栈 | 说明 |
 |------|------|--------|------|
-| `main` | Android | Kotlin + Jetpack Compose | ⭐ **主分支** - Android 版本 |
+| `master` | Android | Kotlin + Jetpack Compose | ⭐ **主分支** - Android 版本 |
 | `ios` | iOS | Swift + SwiftUI | iOS 版本 |
 
 ### 选择适合你的版本
