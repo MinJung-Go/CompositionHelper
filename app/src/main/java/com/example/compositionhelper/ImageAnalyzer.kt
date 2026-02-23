@@ -561,7 +561,7 @@ class ImageAnalyzer {
             }
 
             // 6. 默认推荐（如果没有明确的推荐）
-            if (recommendations.isEmpty) {
+            if (recommendations.isEmpty()) {
                 recommendations.add(
                     CompositionRecommendation(
                         type = CompositionType.RULE_OF_THIRDS,
