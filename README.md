@@ -10,7 +10,7 @@
 
 ---
 
-> **📱 这是 CompositionHelper 的 Android 版本分支（master）。查看 [主项目 README](https://github.com/MinJung-Go/CompositionHelper) 了解 iOS 版本和完整功能说明。**
+> **📱 这是 CompositionHelper 的 Android 版本分支（master）。查看 [Ios README](https://github.com/MinJung-Go/CompositionHelper/tree/ios) 了解 iOS 版本和完整功能说明。**
 
 ---
 
