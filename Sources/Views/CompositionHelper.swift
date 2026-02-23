@@ -2,6 +2,7 @@ import SwiftUI
 import Vision
 import CoreImage
 import AVFoundation
+import PhotosUI
 
 // MARK: - 构图类型枚举
 enum CompositionType: String, CaseIterable, Identifiable {
@@ -84,6 +85,8 @@ struct CompositionHelperView: View {
     @State private var autoAnalyzed = false
     @State private var recommendedCompositions: [CompositionType] = []
     @State private var selectedCategory: CompositionCategory = .classic
+    @State private var confidenceScores: [CompositionType: Double] = [:]
+    @State private var showAnalysisResults = false
     
     var body: some View {
         NavigationView {
@@ -135,7 +138,8 @@ struct CompositionHelperView: View {
                             CompositionButton(
                                 type: composition,
                                 isSelected: selectedComposition == composition,
-                                isRecommended: recommendedCompositions.contains(composition) && autoAnalyzed
+                                isRecommended: recommendedCompositions.contains(composition) && autoAnalyzed,
+                                confidence: recommendedCompositions.contains(composition) ? confidenceScores[composition] : nil
                             ) {
                                 selectedComposition = composition
                             }
@@ -216,6 +220,52 @@ struct CompositionHelperView: View {
                     }
                     .padding(.horizontal)
                     .disabled(selectedImage == nil)
+                    
+                    // 分析结果显示
+                    if showAnalysisResults && autoAnalyzed {
+                        VStack(spacing: 12) {
+                            Divider()
+                            
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                Text("分析完成")
+                                    .font(.headline)
+                                    .foregroundColor(.green)
+                                Spacer()
+                            }
+                            .padding(.horizontal)
+                            
+                            // 推荐构图列表
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("推荐构图:")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                
+                                ForEach(recommendedCompositions.prefix(3), id: \.self) { composition in
+                                    let confidence = confidenceScores[composition] ?? 0.0
+                                    HStack {
+                                        Image(systemName: composition.icon)
+                                            .foregroundColor(.blue)
+                                            .frame(width: 24)
+                                        Text(composition.rawValue)
+                                            .font(.subheadline)
+                                        Spacer()
+                                        Text("\(Int(confidence * 100))%")
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                            .frame(width: 40, alignment: .trailing)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal)
+                            .padding(.bottom, 8)
+                        }
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(10)
+                        .padding(.horizontal)
+                        .padding(.bottom, 8)
+                    }
                 }
                 .padding()
             }
@@ -304,7 +354,9 @@ struct CompositionHelperView: View {
                 
                 await MainActor.run {
                     self.recommendedCompositions = analysis.recommendedCompositions
+                    self.confidenceScores = analysis.confidenceScores
                     self.autoAnalyzed = true
+                    self.showAnalysisResults = true
                     if let firstRecommendation = analysis.recommendedCompositions.first {
                         self.selectedComposition = firstRecommendation
                     }
@@ -337,6 +389,7 @@ struct CompositionButton: View {
     let type: CompositionType
     let isSelected: Bool
     let isRecommended: Bool
+    let confidence: Double?
     let action: () -> Void
     
     var body: some View {
@@ -350,8 +403,16 @@ struct CompositionButton: View {
                             .font(.caption2)
                             .lineLimit(2)
                             .multilineTextAlignment(.center)
+                        
+                        // 显示置信度（如果是推荐构图）
+                        if isRecommended, let conf = confidence {
+                            Text("\(Int(conf * 100))%")
+                                .font(.caption2)
+                                .foregroundColor(.blue)
+                                .fontWeight(.semibold)
+                        }
                     }
-                    .frame(width: 72, height: 80)
+                    .frame(width: 72, height: isRecommended && confidence != nil ? 100 : 80)
                     .background(isSelected ? Color.blue.opacity(0.2) : Color.gray.opacity(0.1))
                     .foregroundColor(isSelected ? .blue : .primary)
                     .cornerRadius(10)
@@ -1023,38 +1084,50 @@ struct DepthLayerView: View {
     }
 }
 
-// MARK: - 图片选择器
+
+// MARK: - 图片选择器（支持 Live Photo）
 struct ImagePicker: UIViewControllerRepresentable {
     let onImagePicked: (UIImage) -> Void
     
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
+    func makeUIViewController(context: Context) -> PHPickerViewController {
+        var config = PHPickerConfiguration(photoLibrary: .shared())
+        config.filter = .images
+        config.selectionLimit = 1
+        
+        let picker = PHPickerViewController(configuration: config)
         picker.delegate = context.coordinator
-        picker.sourceType = .photoLibrary
         return picker
     }
     
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
     
     func makeCoordinator() -> Coordinator {
         Coordinator(onImagePicked: onImagePicked)
     }
     
-    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    class Coordinator: NSObject, PHPickerViewControllerDelegate {
         let onImagePicked: (UIImage) -> Void
         
         init(onImagePicked: @escaping (UIImage) -> Void) {
             self.onImagePicked = onImagePicked
         }
         
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let image = info[.originalImage] as? UIImage {
-                onImagePicked(image)
-            }
+        func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
             picker.dismiss(animated: true)
+            
+            guard let result = results.first else { return }
+            
+            if result.itemProvider.canLoadObject(ofClass: UIImage.self) {
+                result.itemProvider.loadObject(ofClass: UIImage.self) { object, error in
+                    if let image = object as? UIImage {
+                        DispatchQueue.main.async {
+                            self.onImagePicked(image)
+                        }
+                    }
+                }
+            }
         }
     }
-}
 
 // MARK: - 相机视图
 struct CameraView: UIViewControllerRepresentable {
