@@ -1,11 +1,25 @@
-# 📸 CompositionHelper - iOS 构图辅助应用
+# 📸 CompositionHelper - 智能摄影构图辅助工具
 
 > 智能摄影构图辅助工具，支持自动构图分析和多种经典构图类型
+> 主分支：Android 版本 | iOS 版本：`ios` 分支
 
-[![iOS Version](https://img.shields.io/badge/iOS-15.0%2B-blue)](https://developer.apple.com/ios/)
+[![Android](https://img.shields.io/badge/Android-API%2024%2B-brightgreen)](https://developer.android.com/studio)
+[![iOS](https://img.shields.io/badge/iOS-15.0%2B-blue)](https://developer.apple.com/ios/)
 [![Swift](https://img.shields.io/badge/Swift-5.0+-orange.svg)](https://swift.org)
-[![SwiftUI](https://img.shields.io/badge/SwiftUI-UI%20Framework-red.svg)](https://developer.apple.com/xcode/swiftui/)
+[![Kotlin](https://img.shields.io/badge/Kotlin-1.9.20+-purple.svg)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+## 🌿 项目分支
+
+| 分支 | 平台 | 技术栈 | 说明 |
+|------|------|--------|------|
+| `main` | Android | Kotlin + Jetpack Compose | ⭐ **主分支** - Android 版本 |
+| `ios` | iOS | Swift + SwiftUI | iOS 版本 |
+
+### 选择适合你的版本
+
+- **📱 Android 用户** → 克隆主分支或直接下载：`git clone https://github.com/MinJung-Go/CompositionHelper.git`
+- **🍎 iOS 用户** → 切换到 `ios` 分支：`git checkout ios`
 
 ## ✨ 功能特性
 

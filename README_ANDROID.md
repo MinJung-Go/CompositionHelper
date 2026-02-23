@@ -84,8 +84,8 @@
 #### 方式一：克隆并直接打开
 
 ```bash
-# 克隆 Android 分支
-git clone -b android-apk https://github.com/MinJung-Go/CompositionHelper.git
+# 克隆主分支（Android 版本）
+git clone https://github.com/MinJung-Go/CompositionHelper.git
 cd CompositionHelper
 
 # 使用 Android Studio 打开
@@ -98,8 +98,8 @@ cd CompositionHelper
 
 ```bash
 git fetch origin
-git checkout android-apk
-git pull origin android-apk
+git checkout main
+git pull origin main
 ```
 
 ### ▶️ 运行到设备
@@ -705,7 +705,7 @@ copies or substantial portions of the Software.
 
 ## 🌟 相关项目
 
-- [iOS 版本](https://github.com/MinJung-Go/CompositionHelper/tree/master) - SwiftUI 实现
+- [iOS 版本](https://github.com/MinJung-Go/CompositionHelper/tree/ios) - SwiftUI 实现
 - [Desktop 版本](#) - 计划中...
 
 ---
@@ -718,4 +718,5 @@ copies or substantial portions of the Software.
 
 **最后更新**: 2026-02-23
 **当前版本**: 1.0.0
-**分支**: android-apk
+**分支**: main (Android 主版本)
+**iOS 分支**: ios
