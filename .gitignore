@@ -48,3 +48,24 @@ lint-results*.html
 
 # Android Profiling
 *.hprof
+
+# Moltbot/Clawd workspace files
+AGENTS.md
+IDENTITY.md
+SOUL.md
+TOOLS.md
+USER.md
+BOOTSTRAP.md
+HEARTBEAT.md
+canvas/
+memory/
+skills/
+
+# Development artifacts (not part of the project)
+AI-PPT-*.tar.gz
+plane_tank_battle.py
+CODE_COMPLETE.md
+FINAL_SUMMARY.md
+
+# Nested git repositories
+CompositionHelper/
