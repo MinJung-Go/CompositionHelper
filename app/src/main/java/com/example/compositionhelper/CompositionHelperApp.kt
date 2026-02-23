@@ -101,6 +101,8 @@ fun CompositionHelperApp(
     var lineColor by remember { mutableStateOf(Color.Yellow) }
     var autoAnalyzed by remember { mutableStateOf(false) }
     var recommendedCompositions by remember { mutableStateOf(listOf<CompositionType>()) }
+    var confidenceScores by remember { mutableStateOf(mapOf<CompositionType, Double>()) }
+    var showAnalysisResults by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf(CompositionCategory.CLASSIC) }
     var analyzeInProgress by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -226,10 +228,16 @@ fun CompositionHelperApp(
                     .weight(0.25f)
             ) {
                 items(filteredCompositions) { composition ->
+                    val confidence = if (recommendedCompositions.contains(composition) && autoAnalyzed) {
+                        confidenceScores[composition]
+                    } else {
+                        null
+                    }
                     CompositionTypeButton(
                         type = composition,
                         isSelected = selectedComposition == composition,
                         isRecommended = recommendedCompositions.contains(composition) && autoAnalyzed,
+                        confidence = confidence,
                         onClick = { selectedComposition = composition }
                     )
                 }
@@ -312,15 +320,15 @@ fun CompositionHelperApp(
                         selectedImage?.let { bitmap ->
                             analyzeInProgress = true
                             scope.launch {
-                                // 这里调用自动分析
-                                recommendedCompositions = analyzeComposition(
-                                    context = context,
-                                    bitmap = bitmap
-                                )
+                                // 调用真实的图像分析
+                                val analysis = ImageAnalyzer.analyze(bitmap)
+                                recommendedCompositions = analysis.recommendedCompositions
+                                confidenceScores = analysis.confidenceScores
                                 autoAnalyzed = true
+                                showAnalysisResults = true
                                 analyzeInProgress = false
-                                if (recommendedCompositions.isNotEmpty()) {
-                                    selectedComposition = recommendedCompositions.first()
+                                if (analysis.recommendedCompositions.isNotEmpty()) {
+                                    selectedComposition = analysis.recommendedCompositions.first()
                                 }
                             }
                         }
@@ -342,6 +350,72 @@ fun CompositionHelperApp(
                         Text("自动分析构图")
                     }
                 }
+
+                // 分析结果显示
+                if (showAnalysisResults && autoAnalyzed) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // 标题
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Star,
+                                    contentDescription = null,
+                                    tint = Color.Green,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "分析完成",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Color.Green
+                                )
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+
+                            Divider()
+
+                            // 推荐构图列表
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    "推荐构图:",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                                recommendedCompositions.take(3).forEach { composition ->
+                                    val confidence = confidenceScores[composition] ?: 0.0
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            composition.displayName,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Text(
+                                            "${(confidence * 100).toInt()}%",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -353,11 +427,14 @@ fun CompositionTypeButton(
     type: CompositionType,
     isSelected: Boolean,
     isRecommended: Boolean,
+    confidence: Double?,
     onClick: () -> Unit
 ) {
+    val buttonHeight = if (isRecommended && confidence != null) 100.dp else 80.dp
+
     Box(
         modifier = Modifier
-            .size(72.dp, 80.dp)
+            .size(72.dp, buttonHeight)
             .background(
                 if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
                 RoundedCornerShape(10.dp)
@@ -398,21 +475,22 @@ fun CompositionTypeButton(
                     color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                     maxLines = 2
                 )
+
+                // 显示置信度（如果是推荐构图）
+                if (isRecommended && confidence != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "${(confidence * 100).toInt()}%",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                    )
+                }
             }
         }
     }
 }
 
 // 自动分析函数（简化版）
-suspend fun analyzeComposition(
-    context: Context,
-    bitmap: Bitmap
-): List<CompositionType> {
-    // 这里应该使用 ML Kit 进行真实分析
-    // 暂时返回推荐结果
-    return listOf(
-        CompositionType.RULE_OF_THIRDS,
-        CompositionType.LEADING_LINES,
-        CompositionType.CENTER
-    )
-}
+// 注释：已移除旧的假分析函数，现在使用真实的 ImageAnalyzer
+
