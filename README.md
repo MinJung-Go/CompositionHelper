@@ -1,16 +1,16 @@
-# 🤖 CompositionHelper Android
+# 🍎 CompositionHelper iOS
 
-> Android 版本 - 智能摄影构图辅助工具
+> iOS 版本 - 智能摄影构图辅助工具
 
-[![Android Version](https://img.shields.io/badge/API-24%2B-brightgreen)](https://developer.android.com/studio)
-[![Kotlin](https://img.shields.io/badge/Kotlin-1.9.20+-purple.svg)](https://kotlinlang.org)
-[![Jetpack Compose](https://img.shields.io/badge/Jetpack-Compose-blue.svg)](https://developer.android.com/jetpack/compose)
+[![iOS Version](https://img.shields.io/badge/iOS-15.0%2B-brightgreen)](https://developer.apple.com/ios/)
+[![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
+[![SwiftUI](https://img.shields.io/badge/SwiftUI-4.0+-blue.svg)](https://developer.apple.com/xcode/swiftui/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/CI-Passing-success)](https://github.com/MinJung-Go/CompositionHelper/actions)
 
 ---
 
-> **📱 这是 CompositionHelper 的 Android 版本分支（master）。查看 [主项目 README](https://github.com/MinJung-Go/CompositionHelper) 了解 iOS 版本和完整功能说明。**
+> **🍎 这是 CompositionHelper 的 iOS 版本分支（ios）。查看 [主项目 README](https://github.com/MinJung-Go/CompositionHelper) 了解 Android 版本和完整功能说明。**
 
 ---
 
@@ -20,50 +20,51 @@
 
 | 工具 | 最低版本 | 推荐版本 |
 |------|---------|---------|
-| Android Studio | Flamingo | Jellyfish 或更高 |
-| JDK | 11 | 17 |
-| Android SDK | API 24 | API 34 |
-| Gradle | 8.0 | 8.5+ |
+| macOS | 12.0 (Monterey) | 13.0+ |
+| Xcode | 14.0 | 15.0+ |
+| iOS 部署目标 | 15.0 | 17.0+ |
+| Swift | 5.0 | 5.9+ |
 
 ### 安装
 
 ```bash
-# 克隆 master 分支（Android 版本）
-git clone -b master https://github.com/MinJung-Go/CompositionHelper.git
+# 克隆 ios 分支（iOS 版本）
+git clone -b ios https://github.com/MinJung-Go/CompositionHelper.git
 cd CompositionHelper
 
-# 使用 Android Studio 打开
-# 打开 Android Studio → Open → 选择 CompositionHelper 目录
+# 使用 Xcode 打开
+open CompositionHelper.xcodeproj
+# 或
+xed .
 ```
 
 ### 运行
 
 **模拟器**:
-1. 在 Android Studio 中打开 AVD Manager（Tools → Device Manager）
-2. 创建或选择一个模拟器（推荐 API 29+）
-3. 点击 ▶️ 或按 `Shift + F10`
+1. 在 Xcode 中选择目标设备（推荐 iOS 15+）
+2. 点击 ▶️ 或按 `Command + R`
 
 **真机**:
-1. 启用开发者选项和 USB 调试
-2. 用 USB 线连接设备
-3. 在 Android Studio 中选择设备并运行
+1. 用 USB 线连接设备
+2. 在 Xcode 中选择你的设备
+3. 点击 ▶️ 运行（首次需要信任开发者）
 
 ---
 
 ## 🛠 技术栈
 
-- **语言**: Kotlin 1.9.20+
-- **UI 框架**: Jetpack Compose
-- **设计系统**: Material Design 3
-- **最低 SDK**: API 24 (Android 7.0)
-- **目标 SDK**: API 34 (Android 14)
-- **图像分析**: ML Kit
+- **语言**: Swift 5.9+
+- **UI 框架**: SwiftUI 4.0+
+- **最低 iOS**: iOS 15.0
+- **目标 iOS**: iOS 17.0+
+- **图像分析**: Vision Framework
+- **Live Photo**: PHPickerViewController
 
 ---
 
 ## 📚 详细文档
 
-- [Android 详细安装和配置指南](docs/ANDROID.md)
+- [iOS 详细安装和配置指南](docs/IOS.md)
 - [功能详解 - 18种构图类型](docs/FEATURES.md)
 - [主项目 README](https://github.com/MinJung-Go/CompositionHelper)
 
@@ -72,10 +73,10 @@ cd CompositionHelper
 ## ✨ 核心功能
 
 - **18 种构图类型**（7 经典 + 11 现代）
-- **🤖 智能构图分析** - 基于 ML Kit
+- **🤖 智能构图分析** - 基于 Vision Framework
 - **🎨 自定义辅助线** - 透明度和颜色可调
-- **📷 多样化输入** - 相机和相册
-- **🎨 现代 Jetpack Compose UI** - Material Design 3
+- **📷 多样化输入** - 相机和相册（支持 Live Photo）
+- **🎨 现代 SwiftUI UI** - iOS 原生设计
 
 ---
 
@@ -83,7 +84,7 @@ cd CompositionHelper
 
 ### 基本操作
 
-1. **选择照片** - 从相册选择或直接拍摄
+1. **选择照片** - 从相册选择或直接拍摄（支持 Live Photo）
 2. **选择构图类型** - 滑动底部选择器切换构图
 3. **自动分析** - 点击按钮获取 AI 推荐（⭐ 标记）
 4. **自定义辅助线** - 调整透明度和颜色
@@ -94,24 +95,23 @@ cd CompositionHelper
 
 | 权限 | 用途 |
 |------|------|
-| `CAMERA` | 拍摄照片 |
-| `READ_EXTERNAL_STORAGE` | 访问相册 (Android 12 及以下) |
-| `READ_MEDIA_IMAGES` | 读取图片 (Android 13+) |
+| `NSPhotoLibraryUsageDescription` | 访问相册 |
+| `NSCameraUsageDescription` | 拍摄照片 |
 
 ---
 
 ## 🐛 常见问题
 
-### Q: Gradle 同步失败？
-**A:** 运行 `./gradlew clean && ./gradlew --refresh-dependencies`
+### Q: Xcode 编译失败？
+**A:** 运行 `Command + Shift + K` 清理构建，然后重新编译
 
 ### Q: 找不到连接的设备？
-**A:** 运行 `adb devices` 检查设备连接
+**A:** 确保设备已信任电脑，USB 线连接正常
 
-### Q: ML Kit 分析失败？
-**A:** 确保 Google Play 服务已安装，权限已授予
+### Q: Vision Framework 分析失败？
+**A:** 确保权限已授予，照片格式支持
 
-更多问题请查看 [Android 详细文档](docs/ANDROID.md)
+更多问题请查看 [iOS 详细文档](docs/IOS.md)
 
 ---
 
@@ -143,9 +143,9 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ## 🙏 致谢
 
-- [Google ML Kit](https://developers.google.com/ml-kit)
-- [Jetpack Compose](https://developer.android.com/jetpack/compose)
-- [Material Design 3](https://m3.material.io/)
+- [Apple Vision Framework](https://developer.apple.com/documentation/vision)
+- [SwiftUI](https://developer.apple.com/xcode/swiftui/)
+- [Swift Package Manager](https://swift.org/package-manager/)
 - 所有贡献者和支持者
 
 ---
@@ -159,8 +159,8 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 **⭐ 如果这个项目对你有帮助，请给个 Star！**
 
-**Made with ❤️ using Jetpack Compose and Kotlin**
+**Made with ❤️ using SwiftUI and Swift**
 
 ---
 
-**其他平台**: [🍎 iOS 版本](https://github.com/MinJung-Go/CompositionHelper/tree/ios)
+**其他平台**: [🤖 Android 版本](https://github.com/MinJung-Go/CompositionHelper/tree/master)
