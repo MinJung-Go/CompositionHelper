@@ -4,7 +4,7 @@ import SwiftUI
 struct CompositionHelperApp: App {
     var body: some Scene {
         WindowGroup {
-            CompositionHelperView()
+            ContentView()
         }
     }
 }

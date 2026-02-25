@@ -1,166 +1,148 @@
-# 🍎 CompositionHelper iOS
+# CompositionHelper iOS
 
-> iOS 版本 - 智能摄影构图辅助工具
+> iOS 版本 - 智能摄影构图辅助工具（实时相机 + AI 推荐）
 
 [![iOS Version](https://img.shields.io/badge/iOS-15.0%2B-brightgreen)](https://developer.apple.com/ios/)
 [![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
 [![SwiftUI](https://img.shields.io/badge/SwiftUI-4.0+-blue.svg)](https://developer.apple.com/xcode/swiftui/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Build Status](https://img.shields.io/badge/CI-Passing-success)](https://github.com/MinJung-Go/CompositionHelper/actions)
+
+> **这是 CompositionHelper 的 iOS 版本分支（ios）。查看 [Android 版本](https://github.com/MinJung-Go/CompositionHelper/tree/master) 了解 Android 版本。**
 
 ---
 
-> **🍎 这是 CompositionHelper 的 iOS 版本分支（ios）。查看 [主项目 README](https://github.com/MinJung-Go/CompositionHelper) 了解 Android 版本和完整功能说明。**
+## 核心功能
 
----
+- **实时相机构图引导** - 全屏沉浸式相机预览 + 实时构图辅助线叠加
+- **AI 智能推荐** - Vision Framework 实时帧分析，每 2.5 秒自动推荐最佳构图
+- **19 种构图类型** - 经典(7) + 现代(7) + 视角(5) 三大分类
+- **主体追踪** - 实时检测画面主体，对齐关键点时高亮提示
+- **相册分析模式** - 选择照片进行全量构图分析
+- **自定义辅助线** - 透明度、颜色可调
 
-## ✨ 快速开始
+## 双模式架构
 
-### 前置要求
-
-| 工具 | 最低版本 | 推荐版本 |
-|------|---------|---------|
-| macOS | 12.0 (Monterey) | 13.0+ |
-| Xcode | 14.0 | 15.0+ |
-| iOS 部署目标 | 15.0 | 17.0+ |
-| Swift | 5.0 | 5.9+ |
-
-### 安装
-
-```bash
-# 克隆 ios 分支（iOS 版本）
-git clone -b ios https://github.com/MinJung-Go/CompositionHelper.git
-cd CompositionHelper
-
-# 使用 Xcode 打开
-open CompositionHelper.xcodeproj
-# 或
-xed .
+```
+┌──────────────────────────────┐
+│  实时相机模式（默认启动）      │
+│  ┌──────────────────────┐    │
+│  │ AVCaptureVideoPreview│    │
+│  │ + 构图 overlay        │    │
+│  │ + 主体追踪框          │    │
+│  │ + AI 推荐浮层         │    │
+│  └──────────────────────┘    │
+│  [手动/智能] [构图选择] [拍照] │
+├──────────────────────────────┤
+│  相册分析模式                 │
+│  选照片 → Vision 全量分析     │
+│  → 推荐构图 + 置信度排序      │
+└──────────────────────────────┘
 ```
 
-### 运行
+## 快速开始
 
-**模拟器**:
-1. 在 Xcode 中选择目标设备（推荐 iOS 15+）
-2. 点击 ▶️ 或按 `Command + R`
+```bash
+git clone -b ios https://github.com/MinJung-Go/CompositionHelper.git
+cd CompositionHelper
+open CompositionHelper.xcodeproj
+```
 
-**真机**:
-1. 用 USB 线连接设备
-2. 在 Xcode 中选择你的设备
-3. 点击 ▶️ 运行（首次需要信任开发者）
+1. 在 Xcode 中选择目标设备（推荐 iPhone 14 Pro+）
+2. 按 `Command + R` 运行
 
----
+> 实时相机功能需要在真机上测试，模拟器仅支持相册分析模式。
 
-## 🛠 技术栈
+## 技术栈
 
-- **语言**: Swift 5.9+
-- **UI 框架**: SwiftUI 4.0+
-- **最低 iOS**: iOS 15.0
-- **目标 iOS**: iOS 17.0+
-- **图像分析**: Vision Framework
-- **Live Photo**: PHPickerViewController
+| 技术 | 用途 |
+|------|------|
+| Swift 5.9+ | 开发语言 |
+| SwiftUI | UI 框架 |
+| AVFoundation | 实时相机预览与拍照 |
+| Vision | 人脸/矩形检测、实时帧分析 |
+| Core Image | 图像处理 |
+| PhotosUI | PHPicker 相册选择 |
 
----
+**无第三方依赖**，全部使用系统框架。
 
-## 📚 详细文档
+## 19 种构图类型
 
-- [iOS 详细安装和配置指南](docs/IOS.md)
-- [功能详解 - 18种构图类型](docs/FEATURES.md)
-- [主项目 README](https://github.com/MinJung-Go/CompositionHelper)
+### 经典构图 (7)
+三分法 | 中心构图 | 对角线 | 框架构图 | 引导线 | S形曲线 | 黄金螺旋
 
----
+### 现代构图 (7)
+黄金三角 | 对称构图 | 负空间 | 模式重复 | 隧道式 | 分割构图 | 透视焦点
 
-## ✨ 核心功能
+### 视角构图 (5)
+隐形线 | 充满画面 | 低角度 | 高角度 | 深度层次
 
-- **18 种构图类型**（7 经典 + 11 现代）
-- **🤖 智能构图分析** - 基于 Vision Framework
-- **🎨 自定义辅助线** - 透明度和颜色可调
-- **📷 多样化输入** - 相机和相册（支持 Live Photo）
-- **🎨 现代 SwiftUI UI** - iOS 原生设计
+详见 [功能详解](docs/FEATURES.md)
 
----
+## 项目结构
 
-## 📖 使用指南
+```
+Sources/
+├── CompositionHelperApp.swift          # App 入口 → ContentView
+├── Models/
+│   ├── CompositionType.swift           # 19 种构图 + 3 分类枚举
+│   └── AnalysisModels.swift            # 分析数据模型
+├── Views/
+│   ├── ContentView.swift               # 导航入口（默认相机模式）
+│   ├── CompositionHelper.swift         # 相册分析模式 UI
+│   └── Overlays/
+│       └── CompositionOverlays.swift   # 19 种构图 overlay
+├── Camera/
+│   ├── CameraManager.swift             # AVCaptureSession 管理
+│   ├── FrameAnalyzer.swift             # 实时帧分析 + LightweightAnalyzer
+│   └── CameraCompositionView.swift     # 全屏相机 UI + 主体追踪
+├── Components/
+│   ├── ControlPanel.swift              # 底部构图选择面板
+│   ├── ShutterButton.swift             # 快门按钮
+│   └── RecommendationChip.swift        # AI 推荐浮层
+└── Analyzers/
+    └── CompositionAnalyzer.swift       # 全量静态分析（Vision）
+```
 
-### 基本操作
+## 实时分析流程
 
-1. **选择照片** - 从相册选择或直接拍摄（支持 Live Photo）
-2. **选择构图类型** - 滑动底部选择器切换构图
-3. **自动分析** - 点击按钮获取 AI 推荐（⭐ 标记）
-4. **自定义辅助线** - 调整透明度和颜色
+```
+AVCaptureVideoDataOutput
+        │ (每 2.5 秒抽帧)
+        ▼
+   FrameAnalyzer
+   ├── VNDetectFaceRectanglesRequest
+   └── VNDetectRectanglesRequest
+        │
+        ▼
+   LightweightAnalyzer
+   ├── 主体位置 → 最佳构图匹配
+   ├── 方向引导提示
+   └── 对齐检测
+        │
+        ▼
+   UI 更新
+   ├── 推荐构图浮层
+   ├── 主体追踪框
+   └── 对齐高亮（绿/黄/青）
+```
 
-### 权限说明
-
-应用需要以下权限：
+## 权限
 
 | 权限 | 用途 |
 |------|------|
-| `NSPhotoLibraryUsageDescription` | 访问相册 |
-| `NSCameraUsageDescription` | 拍摄照片 |
+| `NSCameraUsageDescription` | 实时相机预览和拍照 |
+| `NSPhotoLibraryUsageDescription` | 相册模式选择照片 |
+| `NSPhotoLibraryAddUsageDescription` | 保存拍摄的照片 |
 
----
+## 详细文档
 
-## 🐛 常见问题
+- [iOS 详细安装和配置指南](docs/IOS.md)
+- [功能详解 - 19 种构图类型](docs/FEATURES.md)
 
-### Q: Xcode 编译失败？
-**A:** 运行 `Command + Shift + K` 清理构建，然后重新编译
-
-### Q: 找不到连接的设备？
-**A:** 确保设备已信任电脑，USB 线连接正常
-
-### Q: Vision Framework 分析失败？
-**A:** 确保权限已授予，照片格式支持
-
-更多问题请查看 [iOS 详细文档](docs/IOS.md)
-
----
-
-## 🤝 贡献指南
-
-欢迎贡献代码、报告问题或提出建议！
-
-```bash
-# 1. Fork 本仓库
-# 2. 创建特性分支
-git checkout -b feature/AmazingFeature
-
-# 3. 提交更改
-git commit -m 'Add some AmazingFeature'
-
-# 4. 推送到分支
-git push origin feature/AmazingFeature
-
-# 5. 创建 Pull Request
-```
-
----
-
-## 📄 许可证
+## 许可证
 
 MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ---
 
-## 🙏 致谢
-
-- [Apple Vision Framework](https://developer.apple.com/documentation/vision)
-- [SwiftUI](https://developer.apple.com/xcode/swiftui/)
-- [Swift Package Manager](https://swift.org/package-manager/)
-- 所有贡献者和支持者
-
----
-
-## 📞 联系方式
-
-- **项目主页**: [https://github.com/MinJung-Go/CompositionHelper](https://github.com/MinJung-Go/CompositionHelper)
-- **问题反馈**: [GitHub Issues](https://github.com/MinJung-Go/CompositionHelper/issues)
-
----
-
-**⭐ 如果这个项目对你有帮助，请给个 Star！**
-
-**Made with ❤️ using SwiftUI and Swift**
-
----
-
-**其他平台**: [🤖 Android 版本](https://github.com/MinJung-Go/CompositionHelper/tree/master)
+**其他平台**: [Android 版本](https://github.com/MinJung-Go/CompositionHelper/tree/master)
