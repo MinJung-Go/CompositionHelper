@@ -1,12 +1,8 @@
 package com.example.compositionhelper
 
-import android.content.Context
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.provider.MediaStore
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -16,83 +12,32 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.border
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toPixelMap
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
-import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
+import com.example.compositionhelper.model.CompositionCategory
+import com.example.compositionhelper.model.CompositionType
+import com.example.compositionhelper.model.getCategory
 import com.example.compositionhelper.ui.composition.*
 import kotlinx.coroutines.launch
-import java.io.InputStream
-
-// 构图类型枚举
-enum class CompositionType(val displayName: String, val icon: String) {
-    RULE_OF_THIRDS("三分法", "grid_3x3"),
-    CENTER("中心构图", "center_focus_strong"),
-    DIAGONAL("对角线", "line_diagonal"),
-    FRAME("框架构图", "crop_square"),
-    LEADING_LINES("引导线", "show_chart"),
-    S_CURVE("S形曲线", "wave"),
-    GOLDEN_SPIRAL("黄金螺旋", "all_inclusive"),
-    GOLDEN_TRIANGLE("黄金三角", "change_history"),
-    SYMMETRY("对称构图", "sync"),
-    NEGATIVE_SPACE("负空间", "crop_square"),
-    PATTERN_REPEAT("模式重复", "grid_on"),
-    TUNNEL("隧道式", "exit_to_app"),
-    SPLIT("分割构图", "view_week"),
-    PERSPECTIVE("透视焦点", "visibility"),
-    INVISIBLE_LINE("隐形线", "arrow_forward"),
-    FILL_FRAME("充满画面", "panorama"),
-    LOW_ANGLE("低角度", "arrow_upward"),
-    HIGH_ANGLE("高角度", "arrow_downward"),
-    DEPTH_LAYER("深度层次", "layers")
-}
-
-// 构图分类
-enum class CompositionCategory(val displayName: String) {
-    CLASSIC("经典"),
-    MODERN("现代"),
-    PERSPECTIVE("视角")
-}
-
-// 获取构图类型属于哪个分类
-fun CompositionType.getCategory(): CompositionCategory {
-    return when (this) {
-        CompositionType.RULE_OF_THIRDS, CompositionType.CENTER, CompositionType.DIAGONAL, CompositionType.FRAME, CompositionType.LEADING_LINES, CompositionType.S_CURVE, CompositionType.GOLDEN_SPIRAL -> CompositionCategory.CLASSIC
-        CompositionType.GOLDEN_TRIANGLE, CompositionType.SYMMETRY, CompositionType.NEGATIVE_SPACE, CompositionType.PATTERN_REPEAT, CompositionType.TUNNEL, CompositionType.SPLIT, CompositionType.PERSPECTIVE -> CompositionCategory.MODERN
-        CompositionType.INVISIBLE_LINE, CompositionType.FILL_FRAME, CompositionType.LOW_ANGLE, CompositionType.HIGH_ANGLE, CompositionType.DEPTH_LAYER -> CompositionCategory.PERSPECTIVE
-
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CompositionHelperApp(
     hasPermissions: Boolean,
-    onRequestPermissions: () -> Unit
+    onRequestPermissions: () -> Unit,
+    onOpenCamera: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var selectedImage by remember { mutableStateOf<Bitmap?>(null) }
@@ -141,6 +86,9 @@ fun CompositionHelperApp(
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ),
                 actions = {
+                    IconButton(onClick = onOpenCamera) {
+                        Icon(Icons.Filled.CameraAlt, contentDescription = "实时取景")
+                    }
                     TextButton(onClick = onRequestPermissions) {
                         Text("权限")
                     }
@@ -320,7 +268,6 @@ fun CompositionHelperApp(
                         selectedImage?.let { bitmap ->
                             analyzeInProgress = true
                             scope.launch {
-                                // 调用真实的图像分析
                                 val analysis = ImageAnalyzer.analyze(bitmap)
                                 recommendedCompositions = analysis.recommendedCompositions
                                 confidenceScores = analysis.confidenceScores
@@ -363,7 +310,6 @@ fun CompositionHelperApp(
                             modifier = Modifier.padding(12.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // 标题
                             Row(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -384,7 +330,6 @@ fun CompositionHelperApp(
 
                             Divider()
 
-                            // 推荐构图列表
                             Column(
                                 verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
@@ -449,7 +394,6 @@ fun CompositionTypeButton(
             )
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // 推荐标记
             if (isRecommended) {
                 Icon(
                     imageVector = Icons.Filled.Star,
@@ -476,7 +420,6 @@ fun CompositionTypeButton(
                     maxLines = 2
                 )
 
-                // 显示置信度（如果是推荐构图）
                 if (isRecommended && confidence != null) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -490,7 +433,3 @@ fun CompositionTypeButton(
         }
     }
 }
-
-// 自动分析函数（简化版）
-// 注释：已移除旧的假分析函数，现在使用真实的 ImageAnalyzer
-
