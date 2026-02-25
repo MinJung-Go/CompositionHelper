@@ -99,8 +99,8 @@ struct LightweightAnalyzer {
             (1.0/3, 1.0/3), (2.0/3, 1.0/3),
             (1.0/3, 2.0/3), (2.0/3, 2.0/3)
         ]
-        for (tx, ty) in thirdPoints {
-            let dist = sqrt(pow(centerX - tx, 2) + pow(centerY - ty, 2))
+        for (thirdX, thirdY) in thirdPoints {
+            let dist = sqrt(pow(centerX - thirdX, 2) + pow(centerY - thirdY, 2))
             if dist < 0.15 {
                 let score = Float(1.0 - dist / 0.15)
                 if score > bestScore {
@@ -180,16 +180,16 @@ struct LightweightAnalyzer {
 
         // 水平方向
         let nearestThirdX = centerX < 0.5 ? CGFloat(1.0/3) : CGFloat(2.0/3)
-        let dx = nearestThirdX - centerX
-        if abs(dx) > 0.08 {
-            parts.append(dx > 0 ? "向右移动" : "向左移动")
+        let deltaX = nearestThirdX - centerX
+        if abs(deltaX) > 0.08 {
+            parts.append(deltaX > 0 ? "向右移动" : "向左移动")
         }
 
         // 垂直方向
         let nearestThirdY = centerY < 0.5 ? CGFloat(1.0/3) : CGFloat(2.0/3)
-        let dy = nearestThirdY - centerY
-        if abs(dy) > 0.08 {
-            parts.append(dy > 0 ? "稍微向下" : "稍微向上")
+        let deltaY = nearestThirdY - centerY
+        if abs(deltaY) > 0.08 {
+            parts.append(deltaY > 0 ? "稍微向下" : "稍微向上")
         }
 
         return parts.isEmpty ? "位置不错" : parts.joined(separator: "，")

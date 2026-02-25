@@ -183,145 +183,6 @@ class CompositionAnalyzer {
         return lines.filter { $0.length > 0.1 }
     }
 
-    // MARK: - 对角线检测
-    private static func detectDiagonalLines(from lines: [Line]) -> [Line] {
-        var diagonalLines: [Line] = []
-        let horizontalLines = lines.filter { abs($0.angle) < 0.2 }
-        let verticalLines = lines.filter { abs($0.angle - .pi / 2) < 0.2 }
-
-        for hLine in horizontalLines {
-            for vLine in verticalLines {
-                let deltaX = abs(hLine.startPoint.x - vLine.startPoint.x)
-                let deltaY = abs(hLine.startPoint.y - vLine.startPoint.y)
-
-                if deltaX < 0.15 && deltaY < 0.15 {
-                    let length = sqrt(deltaX * deltaX + deltaY * deltaY)
-                    let angle = atan2(deltaY, deltaX)
-
-                    if length > 0.2 {
-                        diagonalLines.append(Line(
-                            startPoint: hLine.startPoint,
-                            endPoint: vLine.startPoint,
-                            angle: angle,
-                            length: Double(length)
-                        ))
-                    }
-                }
-            }
-        }
-        return diagonalLines
-    }
-
-    // MARK: - 亮度分析
-    private static func analyzeBrightness(image: CIImage) -> BrightnessDistribution {
-        guard let cgImage = CIContext().createCGImage(image, from: image.extent) else {
-            return .balanced
-        }
-
-        let imageWidth = cgImage.width
-        let imageHeight = cgImage.height
-        let bytesPerRow = imageWidth * 4
-
-        let pixelData = malloc(imageHeight * bytesPerRow)!
-        let context = CGContext(
-            data: pixelData,
-            width: imageWidth,
-            height: imageHeight,
-            bitsPerComponent: 8,
-            bytesPerRow: bytesPerRow,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue
-        )
-        context?.draw(cgImage, in: CGRect(x: 0, y: 0, width: imageWidth, height: imageHeight))
-
-        let pixels = pixelData.assumingMemoryBound(to: UInt8.self)
-
-        var centerSum: Int = 0, centerCount: Int = 0
-        var leftSum: Int = 0, leftCount: Int = 0
-        var rightSum: Int = 0, rightCount: Int = 0
-
-        for row in stride(from: 0, to: imageHeight, by: 20) {
-            for col in stride(from: 0, to: imageWidth, by: 20) {
-                let idx = row * bytesPerRow + col * 4
-                let brightness = (Int(pixels[idx]) + Int(pixels[idx + 1]) + Int(pixels[idx + 2])) / 3
-                let normalizedX = Double(col) / Double(imageWidth)
-
-                if normalizedX > 0.3 && normalizedX < 0.7 {
-                    centerSum += brightness; centerCount += 1
-                } else if normalizedX <= 0.3 {
-                    leftSum += brightness; leftCount += 1
-                } else {
-                    rightSum += brightness; rightCount += 1
-                }
-            }
-        }
-
-        free(pixelData)
-
-        guard centerCount > 0 && leftCount > 0 && rightCount > 0 else { return .balanced }
-
-        let centerAvg = Double(centerSum) / Double(centerCount)
-        let leftAvg = Double(leftSum) / Double(leftCount)
-        let rightAvg = Double(rightSum) / Double(rightCount)
-        let threshold: Double = 30.0
-
-        if centerAvg > leftAvg + threshold && centerAvg > rightAvg + threshold {
-            return .centerWeighted
-        } else if abs(leftAvg - rightAvg) < threshold {
-            return .balanced
-        } else if leftAvg > rightAvg + threshold {
-            return .leftWeighted
-        } else {
-            return .rightWeighted
-        }
-    }
-
-    // MARK: - 对称性检测
-    private static func detectSymmetry(image: CIImage) async -> Bool {
-        guard let cgImage = CIContext().createCGImage(image, from: image.extent) else {
-            return false
-        }
-
-        let width = cgImage.width
-        let height = cgImage.height
-        let bytesPerRow = width * 4
-
-        let pixelData = malloc(height * bytesPerRow)!
-        let context = CGContext(
-            data: pixelData,
-            width: width,
-            height: height,
-            bitsPerComponent: 8,
-            bytesPerRow: bytesPerRow,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue
-        )
-        context?.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-
-        let pixels = pixelData.assumingMemoryBound(to: UInt8.self)
-
-        var totalDifference: Int = 0
-        var totalPixels: Int = 0
-
-        for row in stride(from: 0, to: min(height, 500), by: 1) {
-            for col in stride(from: 0, to: min(width / 2, 250), by: 1) {
-                let leftIdx = row * bytesPerRow + col * 4
-                let rightIdx = row * bytesPerRow + (width - 1 - col) * 4
-
-                let leftB = (Int(pixels[leftIdx]) + Int(pixels[leftIdx + 1]) + Int(pixels[leftIdx + 2])) / 3
-                let rightB = (Int(pixels[rightIdx]) + Int(pixels[rightIdx + 1]) + Int(pixels[rightIdx + 2])) / 3
-
-                totalDifference += abs(leftB - rightB)
-                totalPixels += 1
-            }
-        }
-
-        free(pixelData)
-
-        guard totalPixels > 0 else { return false }
-        return Double(totalDifference) / Double(totalPixels) < 20.0
-    }
-
     // MARK: - 图像特征分析
     private static func analyzeCharacteristics(of image: CIImage) async throws -> ImageCharacteristics {
         let brightnessDistribution = analyzeBrightness(image: image)
@@ -414,8 +275,12 @@ class CompositionAnalyzer {
         guard !lines.isEmpty else { return }
 
         let hLines = lines.filter { abs($0.angle) < 0.2 || abs($0.angle - .pi) < 0.2 }
-        let vLines = lines.filter { abs($0.angle - .pi / 2) < 0.2 || abs($0.angle + .pi / 2) < 0.2 }
-        let dLines = lines.filter { abs($0.angle - .pi / 4) < 0.2 || abs($0.angle + .pi / 4) < 0.2 }
+        let vLines = lines.filter {
+            abs($0.angle - .pi / 2) < 0.2 || abs($0.angle + .pi / 2) < 0.2
+        }
+        let dLines = lines.filter {
+            abs($0.angle - .pi / 4) < 0.2 || abs($0.angle + .pi / 4) < 0.2
+        }
 
         if hLines.count > 2 || vLines.count > 2 {
             addOrUpdate(&recommendations, type: .leadingLines, score: 0.8)
@@ -448,6 +313,151 @@ class CompositionAnalyzer {
         if characteristics.hasStrongLeadingLines {
             addOrUpdate(&recommendations, type: .leadingLines, score: 0.85)
         }
+    }
+}
+
+// MARK: - 辅助方法
+extension CompositionAnalyzer {
+
+    private static func detectDiagonalLines(from lines: [Line]) -> [Line] {
+        var diagonalLines: [Line] = []
+        let horizontalLines = lines.filter { abs($0.angle) < 0.2 }
+        let verticalLines = lines.filter { abs($0.angle - .pi / 2) < 0.2 }
+
+        for hLine in horizontalLines {
+            for vLine in verticalLines {
+                let deltaX = abs(hLine.startPoint.x - vLine.startPoint.x)
+                let deltaY = abs(hLine.startPoint.y - vLine.startPoint.y)
+
+                if deltaX < 0.15 && deltaY < 0.15 {
+                    let length = sqrt(deltaX * deltaX + deltaY * deltaY)
+                    let angle = atan2(deltaY, deltaX)
+
+                    if length > 0.2 {
+                        diagonalLines.append(Line(
+                            startPoint: hLine.startPoint,
+                            endPoint: vLine.startPoint,
+                            angle: angle,
+                            length: Double(length)
+                        ))
+                    }
+                }
+            }
+        }
+        return diagonalLines
+    }
+
+    private static func analyzeBrightness(image: CIImage) -> BrightnessDistribution {
+        guard let cgImage = CIContext().createCGImage(image, from: image.extent) else {
+            return .balanced
+        }
+
+        let imageWidth = cgImage.width
+        let imageHeight = cgImage.height
+        let bytesPerRow = imageWidth * 4
+
+        let pixelData = malloc(imageHeight * bytesPerRow)!
+        let context = CGContext(
+            data: pixelData,
+            width: imageWidth,
+            height: imageHeight,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue
+        )
+        context?.draw(
+            cgImage,
+            in: CGRect(x: 0, y: 0, width: imageWidth, height: imageHeight)
+        )
+
+        let pixels = pixelData.assumingMemoryBound(to: UInt8.self)
+
+        var centerSum: Int = 0, centerCount: Int = 0
+        var leftSum: Int = 0, leftCount: Int = 0
+        var rightSum: Int = 0, rightCount: Int = 0
+
+        for row in stride(from: 0, to: imageHeight, by: 20) {
+            for col in stride(from: 0, to: imageWidth, by: 20) {
+                let idx = row * bytesPerRow + col * 4
+                let brightness = (Int(pixels[idx]) + Int(pixels[idx + 1]) + Int(pixels[idx + 2])) / 3
+                let normalizedX = Double(col) / Double(imageWidth)
+
+                if normalizedX > 0.3 && normalizedX < 0.7 {
+                    centerSum += brightness; centerCount += 1
+                } else if normalizedX <= 0.3 {
+                    leftSum += brightness; leftCount += 1
+                } else {
+                    rightSum += brightness; rightCount += 1
+                }
+            }
+        }
+
+        free(pixelData)
+
+        guard centerCount > 0 && leftCount > 0 && rightCount > 0 else {
+            return .balanced
+        }
+
+        let centerAvg = Double(centerSum) / Double(centerCount)
+        let leftAvg = Double(leftSum) / Double(leftCount)
+        let rightAvg = Double(rightSum) / Double(rightCount)
+        let threshold: Double = 30.0
+
+        if centerAvg > leftAvg + threshold && centerAvg > rightAvg + threshold {
+            return .centerWeighted
+        } else if abs(leftAvg - rightAvg) < threshold {
+            return .balanced
+        } else if leftAvg > rightAvg + threshold {
+            return .leftWeighted
+        } else {
+            return .rightWeighted
+        }
+    }
+
+    private static func detectSymmetry(image: CIImage) async -> Bool {
+        guard let cgImage = CIContext().createCGImage(image, from: image.extent) else {
+            return false
+        }
+
+        let width = cgImage.width
+        let height = cgImage.height
+        let bytesPerRow = width * 4
+
+        let pixelData = malloc(height * bytesPerRow)!
+        let context = CGContext(
+            data: pixelData,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue
+        )
+        context?.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        let pixels = pixelData.assumingMemoryBound(to: UInt8.self)
+
+        var totalDifference: Int = 0
+        var totalPixels: Int = 0
+
+        for row in stride(from: 0, to: min(height, 500), by: 1) {
+            for col in stride(from: 0, to: min(width / 2, 250), by: 1) {
+                let leftIdx = row * bytesPerRow + col * 4
+                let rightIdx = row * bytesPerRow + (width - 1 - col) * 4
+
+                let leftB = (Int(pixels[leftIdx]) + Int(pixels[leftIdx + 1]) + Int(pixels[leftIdx + 2])) / 3
+                let rightB = (Int(pixels[rightIdx]) + Int(pixels[rightIdx + 1]) + Int(pixels[rightIdx + 2])) / 3
+
+                totalDifference += abs(leftB - rightB)
+                totalPixels += 1
+            }
+        }
+
+        free(pixelData)
+
+        guard totalPixels > 0 else { return false }
+        return Double(totalDifference) / Double(totalPixels) < 20.0
     }
 
     private static func addOrUpdate(

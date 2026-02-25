@@ -6,7 +6,7 @@ struct ShutterButton: View {
     @State private var isPressed = false
 
     var body: some View {
-        Button(action: {
+        Button {
             withAnimation(.easeInOut(duration: 0.1)) {
                 isPressed = true
             }
@@ -16,7 +16,7 @@ struct ShutterButton: View {
                     isPressed = false
                 }
             }
-        }) {
+        } label: {
             ZStack {
                 Circle()
                     .stroke(Color.white, lineWidth: 4)

@@ -10,7 +10,9 @@ struct ControlPanel: View {
             // 分类选择
             HStack(spacing: 12) {
                 ForEach(CompositionCategory.allCases) { category in
-                    Button(action: { selectedCategory = category }) {
+                    Button {
+                        selectedCategory = category
+                    } label: {
                         Text(category.rawValue)
                             .font(.caption)
                             .fontWeight(selectedCategory == category ? .bold : .regular)
@@ -32,7 +34,9 @@ struct ControlPanel: View {
                 HStack(spacing: 10) {
                     let filtered = CompositionType.allCases.filter { $0.category == selectedCategory }
                     ForEach(filtered) { type in
-                        Button(action: { selectedComposition = type }) {
+                        Button {
+                            selectedComposition = type
+                        } label: {
                             VStack(spacing: 4) {
                                 Image(systemName: type.icon)
                                     .font(.system(size: 18))

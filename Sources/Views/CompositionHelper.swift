@@ -71,7 +71,8 @@ struct CompositionHelperView: View {
                                 type: composition,
                                 isSelected: selectedComposition == composition,
                                 isRecommended: recommendedCompositions.contains(composition) && autoAnalyzed,
-                                confidence: recommendedCompositions.contains(composition) ? confidenceScores[composition] : nil
+                                confidence: recommendedCompositions.contains(composition)
+                                    ? confidenceScores[composition] : nil
                             ) {
                                 selectedComposition = composition
                             }
@@ -114,7 +115,9 @@ struct CompositionHelperView: View {
                     .padding(.horizontal)
 
                     HStack(spacing: 16) {
-                        Button(action: { showCamera = true }) {
+                        Button {
+                            showCamera = true
+                        } label: {
                             Label("拍照", systemImage: "camera")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
@@ -124,7 +127,9 @@ struct CompositionHelperView: View {
                                 .cornerRadius(10)
                         }
 
-                        Button(action: { showImagePicker = true }) {
+                        Button {
+                            showImagePicker = true
+                        } label: {
                             Label("相册", systemImage: "photo.on.rectangle")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
@@ -354,7 +359,10 @@ struct SimpleCameraView: UIViewControllerRepresentable {
             self.onImageCaptured = onImageCaptured
         }
 
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+        ) {
             if let image = info[.originalImage] as? UIImage {
                 onImageCaptured(image)
             }

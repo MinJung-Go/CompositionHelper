@@ -139,10 +139,10 @@ struct LeadingLines: View {
 
     var body: some View {
         Path { path in
-            for i in 0..<5 {
-                let startX = CGFloat(i) * size.width / 6
+            for index in 0..<5 {
+                let startX = CGFloat(index) * size.width / 6
                 path.move(to: CGPoint(x: startX, y: size.height))
-                path.addLine(to: CGPoint(x: size.width, y: CGFloat(i) * size.height / 6))
+                path.addLine(to: CGPoint(x: size.width, y: CGFloat(index) * size.height / 6))
             }
         }
         .stroke(color.opacity(opacity), lineWidth: 1)
@@ -180,23 +180,23 @@ struct GoldenSpiral: View {
 
         Path { path in
             var currentSize = minSide
-            var x: CGFloat = 0
-            var y: CGFloat = 0
+            var posX: CGFloat = 0
+            var posY: CGFloat = 0
             var direction = 0
 
-            path.move(to: CGPoint(x: x, y: y))
+            path.move(to: CGPoint(x: posX, y: posY))
 
             for _ in 0..<8 {
                 switch direction {
-                case 0: x += currentSize
-                case 1: y += currentSize
-                case 2: x -= currentSize
-                case 3: y -= currentSize
+                case 0: posX += currentSize
+                case 1: posY += currentSize
+                case 2: posX -= currentSize
+                case 3: posY -= currentSize
                 default: break
                 }
 
                 path.addArc(
-                    center: CGPoint(x: x, y: y),
+                    center: CGPoint(x: posX, y: posY),
                     radius: currentSize,
                     startAngle: .degrees(Double(direction) * 90),
                     endAngle: .degrees(Double(direction + 1) * 90),
@@ -256,13 +256,13 @@ struct SymmetryGrid: View {
             }
             .stroke(color.opacity(opacity), lineWidth: 3)
 
-            ForEach(0..<4, id: \.self) { i in
-                let x: CGFloat = (i % 2 == 0) ? size.width * 0.25 : size.width * 0.75
-                let y: CGFloat = (i < 2) ? size.height * 0.25 : size.height * 0.75
+            ForEach(0..<4, id: \.self) { idx in
+                let posX: CGFloat = (idx % 2 == 0) ? size.width * 0.25 : size.width * 0.75
+                let posY: CGFloat = (idx < 2) ? size.height * 0.25 : size.height * 0.75
                 Circle()
                     .stroke(color.opacity(opacity), lineWidth: 2)
                     .frame(width: 20, height: 20)
-                    .position(x: x, y: y)
+                    .position(x: posX, y: posY)
             }
         }
     }
@@ -320,12 +320,12 @@ struct PatternGrid: View {
                 let cellHeight = size.height / 3
                 for row in 0..<3 {
                     for col in 0..<3 {
-                        let x = CGFloat(col) * cellWidth + cellWidth * 0.5
-                        let y = CGFloat(row) * cellHeight + cellHeight * 0.5
-                        path.move(to: CGPoint(x: x - 3, y: y))
-                        path.addLine(to: CGPoint(x: x + 3, y: y))
-                        path.move(to: CGPoint(x: x, y: y - 3))
-                        path.addLine(to: CGPoint(x: x, y: y + 3))
+                        let centerX = CGFloat(col) * cellWidth + cellWidth * 0.5
+                        let centerY = CGFloat(row) * cellHeight + cellHeight * 0.5
+                        path.move(to: CGPoint(x: centerX - 3, y: centerY))
+                        path.addLine(to: CGPoint(x: centerX + 3, y: centerY))
+                        path.move(to: CGPoint(x: centerX, y: centerY - 3))
+                        path.addLine(to: CGPoint(x: centerX, y: centerY + 3))
                     }
                 }
             }
@@ -345,11 +345,11 @@ struct TunnelView: View {
             Path { path in
                 let centerX = size.width / 2
                 let centerY = size.height / 2
-                for i in 0..<5 {
-                    let scale = 1.0 - CGFloat(i) * 0.18
-                    let w = size.width * scale
-                    let h = size.height * scale
-                    path.addRect(CGRect(x: centerX - w / 2, y: centerY - h / 2, width: w, height: h))
+                for idx in 0..<5 {
+                    let scale = 1.0 - CGFloat(idx) * 0.18
+                    let rectW = size.width * scale
+                    let rectH = size.height * scale
+                    path.addRect(CGRect(x: centerX - rectW / 2, y: centerY - rectH / 2, width: rectW, height: rectH))
                 }
             }
             .stroke(color.opacity(opacity), lineWidth: 2)
@@ -410,9 +410,9 @@ struct PerspectiveGrid: View {
                     (size.width * 0.75, 0), (size.width, 0),
                     (0, size.height * 0.3), (size.width, size.height * 0.3)
                 ]
-                for (x, y) in points {
+                for (ptX, ptY) in points {
                     path.move(to: CGPoint(x: centerX, y: centerY))
-                    path.addLine(to: CGPoint(x: x, y: y))
+                    path.addLine(to: CGPoint(x: ptX, y: ptY))
                 }
             }
             .stroke(color.opacity(opacity), lineWidth: 1.5)
