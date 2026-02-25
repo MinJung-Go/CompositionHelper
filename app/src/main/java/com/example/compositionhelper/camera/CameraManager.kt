@@ -8,8 +8,10 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
-import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * CameraX 生命周期管理器
@@ -28,7 +30,16 @@ class CameraManager(
     private var imageCapture: ImageCapture? = null
 
     suspend fun initialize() {
-        cameraProvider = ProcessCameraProvider.getInstance(context).await()
+        cameraProvider = suspendCancellableCoroutine { continuation ->
+            val future = ProcessCameraProvider.getInstance(context)
+            future.addListener({
+                try {
+                    continuation.resume(future.get())
+                } catch (e: Exception) {
+                    continuation.resumeWithException(e)
+                }
+            }, ContextCompat.getMainExecutor(context))
+        }
     }
 
     fun bindPreview(
