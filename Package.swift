@@ -13,7 +13,7 @@ let package = Package(
         .library(
             name: "CompositionHelper",
             targets: ["CompositionHelper"]
-        ),
+        )
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -26,6 +26,6 @@ let package = Package(
             name: "CompositionHelper",
             dependencies: [],
             path: "Sources"
-        ),
+        )
     ]
 )

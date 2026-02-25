@@ -24,13 +24,9 @@ struct CameraCompositionView: View {
                 .ignoresSafeArea()
 
             // 构图辅助线叠加
-            CompositionOverlayView(
-                compositionType: isSmartMode ? (frameAnalyzer.analysisResult?.recommendedType ?? selectedComposition) : selectedComposition,
-                opacity: lineOpacity,
-                color: lineColor
-            )
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
+            overlayView
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
 
             // 主体追踪框
             if isSmartMode {
@@ -44,14 +40,9 @@ struct CameraCompositionView: View {
 
             // UI 层
             VStack {
-                // 顶栏
-                if showControls {
-                    topBar
-                }
-
+                if showControls { topBar }
                 Spacer()
 
-                // AI 推荐浮层
                 if isSmartMode, let result = frameAnalyzer.analysisResult {
                     RecommendationChip(result: result)
                         .padding(.horizontal)
@@ -59,10 +50,7 @@ struct CameraCompositionView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                // 底部控制栏
-                if showControls {
-                    bottomControls
-                }
+                if showControls { bottomControls }
             }
         }
         .statusBarHidden(true)
@@ -78,37 +66,50 @@ struct CameraCompositionView: View {
             cameraManager.stopSession()
             cameraManager.frameDelegate = nil
         }
-        .onChange(of: isSmartMode) { smart in
-            if smart {
-                cameraManager.frameDelegate = frameAnalyzer
-            } else {
-                cameraManager.frameDelegate = nil
-                frameAnalyzer.analysisResult = nil
-                frameAnalyzer.detectedSubjects = []
-            }
+        .onChange(of: isSmartMode) { newValue in
+            handleSmartModeChange(newValue)
         }
         .sheet(isPresented: $showSettings) {
             settingsSheet
         }
         .fullScreenCover(isPresented: $showCapturedPhoto) {
-            if let photo = cameraManager.capturedPhoto {
-                CapturedPhotoView(image: photo) {
-                    showCapturedPhoto = false
-                    cameraManager.capturedPhoto = nil
-                }
-            }
+            capturedPhotoScreen
         }
-        .onChange(of: cameraManager.capturedPhoto) { photo in
-            if photo != nil {
+        .onChange(of: cameraManager.capturedPhoto) { newValue in
+            if newValue != nil {
                 showCapturedPhoto = true
             }
+        }
+    }
+
+    // MARK: - 构图叠加
+    private var overlayView: some View {
+        let activeType = isSmartMode
+            ? (frameAnalyzer.analysisResult?.recommendedType ?? selectedComposition)
+            : selectedComposition
+        return CompositionOverlayView(
+            compositionType: activeType,
+            opacity: lineOpacity,
+            color: lineColor
+        )
+    }
+
+    private func handleSmartModeChange(_ smart: Bool) {
+        if smart {
+            cameraManager.frameDelegate = frameAnalyzer
+        } else {
+            cameraManager.frameDelegate = nil
+            frameAnalyzer.analysisResult = nil
+            frameAnalyzer.detectedSubjects = []
         }
     }
 
     // MARK: - 顶栏
     private var topBar: some View {
         HStack {
-            Button(action: { dismiss() }) {
+            Button {
+                dismiss()
+            } label: {
                 Image(systemName: "chevron.left")
                     .font(.title2)
                     .foregroundColor(.white)
@@ -119,10 +120,9 @@ struct CameraCompositionView: View {
 
             Spacer()
 
-            // 手动/智能模式切换
-            Button(action: {
+            Button {
                 withAnimation { isSmartMode.toggle() }
-            }) {
+            } label: {
                 HStack(spacing: 6) {
                     Image(systemName: isSmartMode ? "brain" : "hand.draw")
                     Text(isSmartMode ? "智能" : "手动")
@@ -143,7 +143,6 @@ struct CameraCompositionView: View {
     // MARK: - 底部控制
     private var bottomControls: some View {
         VStack(spacing: 12) {
-            // 构图类型选择器
             if !isSmartMode {
                 ControlPanel(
                     selectedCategory: $selectedCategory,
@@ -151,10 +150,10 @@ struct CameraCompositionView: View {
                 )
             }
 
-            // 底部按钮行
             HStack(spacing: 40) {
-                // 设置按钮
-                Button(action: { showSettings = true }) {
+                Button {
+                    showSettings = true
+                } label: {
                     Image(systemName: "slider.horizontal.3")
                         .font(.title2)
                         .foregroundColor(.white)
@@ -163,13 +162,13 @@ struct CameraCompositionView: View {
                         .clipShape(Circle())
                 }
 
-                // 快门按钮
                 ShutterButton {
                     cameraManager.capturePhoto()
                 }
 
-                // 相册模式按钮
-                Button(action: { dismiss() }) {
+                Button {
+                    dismiss()
+                } label: {
                     Image(systemName: "photo.on.rectangle")
                         .font(.title2)
                         .foregroundColor(.white)
@@ -198,14 +197,17 @@ struct CameraCompositionView: View {
                     HStack {
                         Text("颜色")
                         Spacer()
-                        ForEach([Color.yellow, .red, .blue, .white, .green], id: \.self) { c in
+                        ForEach([Color.yellow, .red, .blue, .white, .green], id: \.self) { color in
                             Circle()
-                                .fill(c)
+                                .fill(color)
                                 .frame(width: 30, height: 30)
                                 .overlay(
-                                    Circle().stroke(lineColor == c ? Color.primary : Color.clear, lineWidth: 3)
+                                    Circle().stroke(
+                                        lineColor == color ? Color.primary : Color.clear,
+                                        lineWidth: 3
+                                    )
                                 )
-                                .onTapGesture { lineColor = c }
+                                .onTapGesture { lineColor = color }
                         }
                     }
                 }
@@ -224,6 +226,17 @@ struct CameraCompositionView: View {
         }
         .presentationDetents([.medium])
     }
+
+    // MARK: - 拍照结果
+    @ViewBuilder
+    private var capturedPhotoScreen: some View {
+        if let photo = cameraManager.capturedPhoto {
+            CapturedPhotoView(image: photo) {
+                showCapturedPhoto = false
+                cameraManager.capturedPhoto = nil
+            }
+        }
+    }
 }
 
 // MARK: - 主体追踪叠加层
@@ -235,37 +248,44 @@ struct SubjectTrackingOverlay: View {
         GeometryReader { geometry in
             let size = geometry.size
             ForEach(Array(subjects.enumerated()), id: \.offset) { _, subject in
-                // Vision boundingBox: 左下角为原点，需要翻转 Y
-                let rect = CGRect(
-                    x: subject.boundingBox.minX * size.width,
-                    y: (1 - subject.boundingBox.maxY) * size.height,
-                    width: subject.boundingBox.width * size.width,
-                    height: subject.boundingBox.height * size.height
-                )
-
-                let alignmentColor = alignmentIndicatorColor(
-                    subjectCenter: CGPoint(x: rect.midX / size.width, y: rect.midY / size.height),
-                    compositionType: compositionType
+                let rect = convertBoundingBox(subject.boundingBox, in: size)
+                let color = alignmentColor(
+                    subjectCenter: CGPoint(
+                        x: rect.midX / size.width,
+                        y: rect.midY / size.height
+                    )
                 )
 
                 RoundedRectangle(cornerRadius: 6)
-                    .stroke(alignmentColor, lineWidth: 2.5)
+                    .stroke(color, lineWidth: 2.5)
                     .frame(width: rect.width, height: rect.height)
                     .position(x: rect.midX, y: rect.midY)
             }
         }
     }
 
-    private func alignmentIndicatorColor(subjectCenter: CGPoint, compositionType: CompositionType) -> Color {
+    // Vision boundingBox: 左下角为原点，需要翻转 Y
+    private func convertBoundingBox(_ box: CGRect, in size: CGSize) -> CGRect {
+        CGRect(
+            x: box.minX * size.width,
+            y: (1 - box.maxY) * size.height,
+            width: box.width * size.width,
+            height: box.height * size.height
+        )
+    }
+
+    private func alignmentColor(subjectCenter: CGPoint) -> Color {
         let keyPoints = compositionKeyPoints(for: compositionType)
-        let minDist = keyPoints.map { sqrt(pow($0.x - subjectCenter.x, 2) + pow($0.y - subjectCenter.y, 2)) }.min() ?? 1.0
+        let minDist = keyPoints.map {
+            sqrt(pow($0.x - subjectCenter.x, 2) + pow($0.y - subjectCenter.y, 2))
+        }.min() ?? 1.0
 
         if minDist < 0.05 {
-            return .green // 已对齐
+            return .green
         } else if minDist < 0.12 {
-            return .yellow // 接近
+            return .yellow
         } else {
-            return .cyan // 未对齐
+            return .cyan
         }
     }
 
@@ -273,24 +293,24 @@ struct SubjectTrackingOverlay: View {
         switch type {
         case .ruleOfThirds:
             return [
-                CGPoint(x: 1.0/3, y: 1.0/3), CGPoint(x: 2.0/3, y: 1.0/3),
-                CGPoint(x: 1.0/3, y: 2.0/3), CGPoint(x: 2.0/3, y: 2.0/3)
+                CGPoint(x: 1.0 / 3, y: 1.0 / 3), CGPoint(x: 2.0 / 3, y: 1.0 / 3),
+                CGPoint(x: 1.0 / 3, y: 2.0 / 3), CGPoint(x: 2.0 / 3, y: 2.0 / 3)
             ]
         case .center:
             return [CGPoint(x: 0.5, y: 0.5)]
-        case .goldenSpiral:
-            return [CGPoint(x: 0.382, y: 0.618), CGPoint(x: 0.618, y: 0.382)]
-        case .goldenTriangle:
+        case .goldenSpiral, .goldenTriangle:
             return [CGPoint(x: 0.382, y: 0.618), CGPoint(x: 0.618, y: 0.382)]
         case .diagonal:
-            return [CGPoint(x: 0.25, y: 0.25), CGPoint(x: 0.75, y: 0.75),
-                    CGPoint(x: 0.75, y: 0.25), CGPoint(x: 0.25, y: 0.75)]
+            return [
+                CGPoint(x: 0.25, y: 0.25), CGPoint(x: 0.75, y: 0.75),
+                CGPoint(x: 0.75, y: 0.25), CGPoint(x: 0.25, y: 0.75)
+            ]
         case .perspective:
             return [CGPoint(x: 0.5, y: 0.6)]
         default:
             return [
-                CGPoint(x: 1.0/3, y: 1.0/3), CGPoint(x: 2.0/3, y: 1.0/3),
-                CGPoint(x: 1.0/3, y: 2.0/3), CGPoint(x: 2.0/3, y: 2.0/3),
+                CGPoint(x: 1.0 / 3, y: 1.0 / 3), CGPoint(x: 2.0 / 3, y: 1.0 / 3),
+                CGPoint(x: 1.0 / 3, y: 2.0 / 3), CGPoint(x: 2.0 / 3, y: 2.0 / 3),
                 CGPoint(x: 0.5, y: 0.5)
             ]
         }
@@ -312,7 +332,9 @@ struct CapturedPhotoView: View {
 
             VStack {
                 HStack {
-                    Button(action: onDismiss) {
+                    Button {
+                        onDismiss()
+                    } label: {
                         Text("返回")
                             .font(.headline)
                             .foregroundColor(.white)
@@ -323,10 +345,10 @@ struct CapturedPhotoView: View {
                     }
                     Spacer()
 
-                    Button(action: {
+                    Button {
                         UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
                         onDismiss()
-                    }) {
+                    } label: {
                         Text("保存")
                             .font(.headline)
                             .foregroundColor(.white)

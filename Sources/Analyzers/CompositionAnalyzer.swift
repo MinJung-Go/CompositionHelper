@@ -39,7 +39,6 @@ class CompositionAnalyzer {
     private static func detectSubjects(in image: CIImage) async throws -> [DetectedSubject] {
         var subjects: [DetectedSubject] = []
 
-        // 检测人脸
         let faceRequest = VNDetectFaceRectanglesRequest()
         let faceHandler = VNImageRequestHandler(ciImage: image)
         try faceHandler.perform([faceRequest])
@@ -54,7 +53,6 @@ class CompositionAnalyzer {
             }
         }
 
-        // 检测动物
         let animalRequest = VNRecognizeAnimalsRequest()
         let animalHandler = VNImageRequestHandler(ciImage: image)
         try animalHandler.perform([animalRequest])
@@ -71,7 +69,6 @@ class CompositionAnalyzer {
             }
         }
 
-        // 检测文字
         let textRequest = VNRecognizeTextRequest()
         textRequest.recognitionLevel = .accurate
         let textHandler = VNImageRequestHandler(ciImage: image)
@@ -117,21 +114,27 @@ class CompositionAnalyzer {
         var lines: [Line] = []
 
         // 检测水平线
-        for y in stride(from: 0, to: height - 1, by: 10) {
+        for row in stride(from: 0, to: height - 1, by: 10) {
             var startX: Int = -1
             var endX: Int = -1
 
-            for x in stride(from: 0, to: width - 1, by: 10) {
-                let idx = y * bytesPerRow + x * 4
-                let brightness = Double(pixels[idx] + pixels[idx+1] + pixels[idx+2]) / 3.0
+            for col in stride(from: 0, to: width - 1, by: 10) {
+                let idx = row * bytesPerRow + col * 4
+                let brightness = Double(pixels[idx] + pixels[idx + 1] + pixels[idx + 2]) / 3.0
 
                 if brightness > 200 && startX == -1 {
-                    startX = x
+                    startX = col
                 } else if brightness < 50 && startX != -1 && endX == -1 {
-                    endX = x
+                    endX = col
                     lines.append(Line(
-                        startPoint: CGPoint(x: CGFloat(startX) / CGFloat(width), y: CGFloat(y) / CGFloat(height)),
-                        endPoint: CGPoint(x: CGFloat(endX) / CGFloat(width), y: CGFloat(y) / CGFloat(height)),
+                        startPoint: CGPoint(
+                            x: CGFloat(startX) / CGFloat(width),
+                            y: CGFloat(row) / CGFloat(height)
+                        ),
+                        endPoint: CGPoint(
+                            x: CGFloat(endX) / CGFloat(width),
+                            y: CGFloat(row) / CGFloat(height)
+                        ),
                         angle: 0,
                         length: Double(endX - startX) / Double(width)
                     ))
@@ -142,21 +145,27 @@ class CompositionAnalyzer {
         }
 
         // 检测垂直线
-        for x in stride(from: 0, to: width - 1, by: 10) {
+        for col in stride(from: 0, to: width - 1, by: 10) {
             var startY: Int = -1
             var endY: Int = -1
 
-            for y in stride(from: 0, to: height - 1, by: 10) {
-                let idx = y * bytesPerRow + x * 4
-                let brightness = Double(pixels[idx] + pixels[idx+1] + pixels[idx+2]) / 3.0
+            for row in stride(from: 0, to: height - 1, by: 10) {
+                let idx = row * bytesPerRow + col * 4
+                let brightness = Double(pixels[idx] + pixels[idx + 1] + pixels[idx + 2]) / 3.0
 
                 if brightness > 200 && startY == -1 {
-                    startY = y
+                    startY = row
                 } else if brightness < 50 && startY != -1 && endY == -1 {
-                    endY = y
+                    endY = row
                     lines.append(Line(
-                        startPoint: CGPoint(x: CGFloat(x) / CGFloat(width), y: CGFloat(startY) / CGFloat(height)),
-                        endPoint: CGPoint(x: CGFloat(x) / CGFloat(width), y: CGFloat(endY) / CGFloat(height)),
+                        startPoint: CGPoint(
+                            x: CGFloat(col) / CGFloat(width),
+                            y: CGFloat(startY) / CGFloat(height)
+                        ),
+                        endPoint: CGPoint(
+                            x: CGFloat(col) / CGFloat(width),
+                            y: CGFloat(endY) / CGFloat(height)
+                        ),
                         angle: .pi / 2,
                         length: Double(endY - startY) / Double(height)
                     ))
@@ -178,16 +187,16 @@ class CompositionAnalyzer {
     private static func detectDiagonalLines(from lines: [Line]) -> [Line] {
         var diagonalLines: [Line] = []
         let horizontalLines = lines.filter { abs($0.angle) < 0.2 }
-        let verticalLines = lines.filter { abs($0.angle - .pi/2) < 0.2 }
+        let verticalLines = lines.filter { abs($0.angle - .pi / 2) < 0.2 }
 
         for hLine in horizontalLines {
             for vLine in verticalLines {
-                let dx = abs(hLine.startPoint.x - vLine.startPoint.x)
-                let dy = abs(hLine.startPoint.y - vLine.startPoint.y)
+                let deltaX = abs(hLine.startPoint.x - vLine.startPoint.x)
+                let deltaY = abs(hLine.startPoint.y - vLine.startPoint.y)
 
-                if dx < 0.15 && dy < 0.15 {
-                    let length = sqrt(dx*dx + dy*dy)
-                    let angle = atan2(dy, dx)
+                if deltaX < 0.15 && deltaY < 0.15 {
+                    let length = sqrt(deltaX * deltaX + deltaY * deltaY)
+                    let angle = atan2(deltaY, deltaX)
 
                     if length > 0.2 {
                         diagonalLines.append(Line(
@@ -231,11 +240,11 @@ class CompositionAnalyzer {
         var leftSum: Int = 0, leftCount: Int = 0
         var rightSum: Int = 0, rightCount: Int = 0
 
-        for y in stride(from: 0, to: imageHeight, by: 20) {
-            for x in stride(from: 0, to: imageWidth, by: 20) {
-                let idx = y * bytesPerRow + x * 4
-                let brightness = (Int(pixels[idx]) + Int(pixels[idx+1]) + Int(pixels[idx+2])) / 3
-                let normalizedX = Double(x) / Double(imageWidth)
+        for row in stride(from: 0, to: imageHeight, by: 20) {
+            for col in stride(from: 0, to: imageWidth, by: 20) {
+                let idx = row * bytesPerRow + col * 4
+                let brightness = (Int(pixels[idx]) + Int(pixels[idx + 1]) + Int(pixels[idx + 2])) / 3
+                let normalizedX = Double(col) / Double(imageWidth)
 
                 if normalizedX > 0.3 && normalizedX < 0.7 {
                     centerSum += brightness; centerCount += 1
@@ -294,13 +303,13 @@ class CompositionAnalyzer {
         var totalDifference: Int = 0
         var totalPixels: Int = 0
 
-        for y in stride(from: 0, to: min(height, 500), by: 1) {
-            for x in stride(from: 0, to: min(width / 2, 250), by: 1) {
-                let leftIdx = y * bytesPerRow + x * 4
-                let rightIdx = y * bytesPerRow + (width - 1 - x) * 4
+        for row in stride(from: 0, to: min(height, 500), by: 1) {
+            for col in stride(from: 0, to: min(width / 2, 250), by: 1) {
+                let leftIdx = row * bytesPerRow + col * 4
+                let rightIdx = row * bytesPerRow + (width - 1 - col) * 4
 
-                let leftB = (Int(pixels[leftIdx]) + Int(pixels[leftIdx+1]) + Int(pixels[leftIdx+2])) / 3
-                let rightB = (Int(pixels[rightIdx]) + Int(pixels[rightIdx+1]) + Int(pixels[rightIdx+2])) / 3
+                let leftB = (Int(pixels[leftIdx]) + Int(pixels[leftIdx + 1]) + Int(pixels[leftIdx + 2])) / 3
+                let rightB = (Int(pixels[rightIdx]) + Int(pixels[rightIdx + 1]) + Int(pixels[rightIdx + 2])) / 3
 
                 totalDifference += abs(leftB - rightB)
                 totalPixels += 1
@@ -349,6 +358,24 @@ class CompositionAnalyzer {
     ) -> [(type: CompositionType, score: Double)] {
         var recommendations: [(type: CompositionType, score: Double)] = []
 
+        recommendBySubjects(subjects, into: &recommendations)
+        recommendByLines(lines, into: &recommendations)
+        recommendByCharacteristics(characteristics, into: &recommendations)
+
+        if recommendations.isEmpty {
+            recommendations.append((type: .ruleOfThirds, score: 0.6))
+            recommendations.append((type: .center, score: 0.5))
+        }
+
+        recommendations.sort { $0.score > $1.score }
+        return Array(recommendations.prefix(5))
+    }
+
+    // MARK: - 基于主体位置的推荐
+    private static func recommendBySubjects(
+        _ subjects: [DetectedSubject],
+        into recommendations: inout [(type: CompositionType, score: Double)]
+    ) {
         for subject in subjects {
             let position = subject.boundingBox
             let thirdX1: CGFloat = 1.0 / 3.0
@@ -377,20 +404,32 @@ class CompositionAnalyzer {
                 addOrUpdate(&recommendations, type: .center, score: 0.75)
             }
         }
+    }
 
-        if !lines.isEmpty {
-            let hLines = lines.filter { abs($0.angle) < 0.2 || abs($0.angle - .pi) < 0.2 }
-            let vLines = lines.filter { abs($0.angle - .pi/2) < 0.2 || abs($0.angle + .pi/2) < 0.2 }
-            let dLines = lines.filter { abs($0.angle - .pi/4) < 0.2 || abs($0.angle + .pi/4) < 0.2 }
+    // MARK: - 基于线条的推荐
+    private static func recommendByLines(
+        _ lines: [Line],
+        into recommendations: inout [(type: CompositionType, score: Double)]
+    ) {
+        guard !lines.isEmpty else { return }
 
-            if hLines.count > 2 || vLines.count > 2 {
-                addOrUpdate(&recommendations, type: .leadingLines, score: 0.8)
-            }
-            if dLines.count > 1 {
-                addOrUpdate(&recommendations, type: .diagonal, score: 0.75)
-            }
+        let hLines = lines.filter { abs($0.angle) < 0.2 || abs($0.angle - .pi) < 0.2 }
+        let vLines = lines.filter { abs($0.angle - .pi / 2) < 0.2 || abs($0.angle + .pi / 2) < 0.2 }
+        let dLines = lines.filter { abs($0.angle - .pi / 4) < 0.2 || abs($0.angle + .pi / 4) < 0.2 }
+
+        if hLines.count > 2 || vLines.count > 2 {
+            addOrUpdate(&recommendations, type: .leadingLines, score: 0.8)
         }
+        if dLines.count > 1 {
+            addOrUpdate(&recommendations, type: .diagonal, score: 0.75)
+        }
+    }
 
+    // MARK: - 基于图像特征的推荐
+    private static func recommendByCharacteristics(
+        _ characteristics: ImageCharacteristics,
+        into recommendations: inout [(type: CompositionType, score: Double)]
+    ) {
         if characteristics.hasSymmetry {
             addOrUpdate(&recommendations, type: .center, score: 0.9)
         }
@@ -409,14 +448,6 @@ class CompositionAnalyzer {
         if characteristics.hasStrongLeadingLines {
             addOrUpdate(&recommendations, type: .leadingLines, score: 0.85)
         }
-
-        if recommendations.isEmpty {
-            recommendations.append((type: .ruleOfThirds, score: 0.6))
-            recommendations.append((type: .center, score: 0.5))
-        }
-
-        recommendations.sort { $0.score > $1.score }
-        return Array(recommendations.prefix(5))
     }
 
     private static func addOrUpdate(
@@ -435,16 +466,18 @@ class CompositionAnalyzer {
         var filtered: [DetectedSubject] = []
         for subject in subjects {
             var hasOverlap = false
-            for (i, existing) in filtered.enumerated() {
+            for (idx, existing) in filtered.enumerated() {
                 let intersection = subject.boundingBox.intersection(existing.boundingBox)
                 let intersectionArea = intersection.width * intersection.height
                 let selfArea = subject.boundingBox.width * subject.boundingBox.height
                 let existingArea = existing.boundingBox.width * existing.boundingBox.height
 
-                if intersectionArea > 0 && (intersectionArea / selfArea > 0.3 || intersectionArea / existingArea > 0.3) {
+                let isOverlapping = intersectionArea > 0 &&
+                    (intersectionArea / selfArea > 0.3 || intersectionArea / existingArea > 0.3)
+                if isOverlapping {
                     hasOverlap = true
                     if subject.confidence > existing.confidence {
-                        filtered[i] = subject
+                        filtered[idx] = subject
                     }
                     break
                 }
