@@ -284,29 +284,31 @@ private fun drawSCurve(r: CompositionRenderer, w: Float, h: Float) {
     ))
 }
 
-// 黄金螺旋
+// 黄金螺旋 — Fibonacci quarter-circle arcs in a 13×8 golden rectangle
 private fun drawGoldenSpiral(r: CompositionRenderer, w: Float, h: Float) {
-    val phi = 1.618f
-    val minSide = w.coerceAtMost(h)
-    var currentSize = minSide
-    var x = 0f
-    var y = 0f
-    var direction = 0
+    // Fibonacci squares: 8, 5, 3, 2, 1, 1 tiled in a 13×8 golden rectangle
+    val totalW = 13f
+    val totalH = 8f
+    val scale = (w / totalW).coerceAtMost(h / totalH)
+    val offsetX = (w - totalW * scale) / 2
+    val offsetY = (h - totalH * scale) / 2
 
-    for (i in 0 until 8) {
-        when (direction) {
-            0 -> x += currentSize
-            1 -> y += currentSize
-            2 -> x -= currentSize
-            3 -> y -= currentSize
-        }
-        r.drawArc(
-            x - currentSize, y - currentSize,
-            x + currentSize, y + currentSize,
-            (direction * 90).toFloat(), 90f
-        )
-        currentSize /= phi
-        direction = (direction + 1) % 4
+    // Each arc: (centerX, centerY, radius, startAngle) in Fibonacci units
+    // Center is at the corner of the Fibonacci square where the spiral pivots
+    val arcs = arrayOf(
+        floatArrayOf(0f, 0f, 8f, 0f),      // 8-square, center at top-left
+        floatArrayOf(13f, 0f, 5f, 90f),     // 5-square, center at top-right
+        floatArrayOf(13f, 8f, 3f, 180f),    // 3-square, center at bottom-right
+        floatArrayOf(8f, 8f, 2f, 270f),     // 2-square, center at bottom-left
+        floatArrayOf(8f, 5f, 1f, 0f),       // 1-square, center at top-left
+        floatArrayOf(10f, 5f, 1f, 90f)      // 1-square, center at top-right
+    )
+
+    for (arc in arcs) {
+        val cx = arc[0] * scale + offsetX
+        val cy = arc[1] * scale + offsetY
+        val rad = arc[2] * scale
+        r.drawArc(cx - rad, cy - rad, cx + rad, cy + rad, arc[3], 90f)
     }
 }
 
