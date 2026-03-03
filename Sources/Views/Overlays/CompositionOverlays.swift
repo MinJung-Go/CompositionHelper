@@ -5,6 +5,7 @@ struct CompositionOverlayView: View {
     let compositionType: CompositionType
     let opacity: Double
     let color: Color
+    var spiralOrientation: Int = 0
 
     var body: some View {
         GeometryReader { geometry in
@@ -23,7 +24,7 @@ struct CompositionOverlayView: View {
             case .sCurve:
                 SCurvePath(size: size, opacity: opacity, color: color)
             case .goldenSpiral:
-                GoldenSpiral(size: size, opacity: opacity, color: color)
+                GoldenSpiral(size: size, opacity: opacity, color: color, orientation: spiralOrientation)
             case .goldenTriangle:
                 GoldenTriangle(size: size, opacity: opacity, color: color)
             case .symmetry:
@@ -169,38 +170,55 @@ struct SCurvePath: View {
 }
 
 // MARK: - 黄金螺旋 — Fibonacci quarter-circle arcs in a 13×8 golden rectangle
+// orientation: 0=↘右下  1=↙左下  2=↗右上  3=↖左上
 struct GoldenSpiral: View {
     let size: CGSize
     let opacity: Double
     let color: Color
+    var orientation: Int = 0
 
     var body: some View {
-        // Fibonacci squares: 8, 5, 3, 2, 1, 1 tiled in a 13×8 golden rectangle
         let totalW: CGFloat = 13
         let totalH: CGFloat = 8
         let scale = min(size.width / totalW, size.height / totalH)
         let offX = (size.width - totalW * scale) / 2
         let offY = (size.height - totalH * scale) / 2
 
-        // (centerX, centerY, radius, startAngle, endAngle) in Fibonacci units
-        let arcs: [(cx: CGFloat, cy: CGFloat, rad: CGFloat,
-                     startDeg: Double, endDeg: Double)] = [
-            (0, 0, 8, 90, 0),       // 8-square, pivot at top-left
-            (13, 0, 5, 180, 90),     // 5-square, pivot at top-right
-            (13, 8, 3, 270, 180),    // 3-square, pivot at bottom-right
-            (8, 8, 2, 360, 270),     // 2-square, pivot at bottom-left
-            (8, 5, 1, 90, 0),        // 1-square, pivot at top-left
-            (10, 5, 1, 180, 90)      // 1-square, pivot at top-right
+        let flipH = orientation == 1 || orientation == 3
+        let flipV = orientation == 2 || orientation == 3
+
+        // Base arcs (eye at bottom-right): cx, cy, radius, startDeg, endDeg
+        let baseArcs: [(cx: CGFloat, cy: CGFloat, rad: CGFloat,
+                         startDeg: Double, endDeg: Double)] = [
+            (0, 0, 8, 90, 0),
+            (13, 0, 5, 180, 90),
+            (13, 8, 3, 270, 180),
+            (8, 8, 2, 360, 270),
+            (8, 5, 1, 90, 0),
+            (10, 5, 1, 180, 90)
         ]
 
         Path { path in
-            for (index, arc) in arcs.enumerated() {
-                let centerX = arc.cx * scale + offX
-                let centerY = arc.cy * scale + offY
+            for (index, arc) in baseArcs.enumerated() {
+                var acx = arc.cx, acy = arc.cy
+                var sDeg = arc.startDeg, eDeg = arc.endDeg
+                if flipH {
+                    acx = totalW - acx
+                    sDeg = fmod(90 - sDeg + 360, 360)
+                    eDeg = fmod(90 - eDeg + 360, 360)
+                }
+                if flipV {
+                    acy = totalH - acy
+                    sDeg = fmod(270 - sDeg + 360, 360)
+                    eDeg = fmod(270 - eDeg + 360, 360)
+                }
+
+                let centerX = acx * scale + offX
+                let centerY = acy * scale + offY
                 let radius = arc.rad * scale
 
                 if index == 0 {
-                    let startRad = Angle.degrees(arc.startDeg).radians
+                    let startRad = Angle.degrees(sDeg).radians
                     path.move(to: CGPoint(
                         x: centerX + radius * cos(startRad),
                         y: centerY + radius * sin(startRad)
@@ -210,8 +228,8 @@ struct GoldenSpiral: View {
                 path.addArc(
                     center: CGPoint(x: centerX, y: centerY),
                     radius: radius,
-                    startAngle: .degrees(arc.startDeg),
-                    endAngle: .degrees(arc.endDeg),
+                    startAngle: .degrees(sDeg),
+                    endAngle: .degrees(eDeg),
                     clockwise: true
                 )
             }

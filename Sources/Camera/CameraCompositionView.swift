@@ -14,6 +14,7 @@ struct CameraCompositionView: View {
     @State private var showControls = true
     @State private var showSettings = false
     @State private var showCapturedPhoto = false
+    @State private var spiralOrientation = 0 // 0=↘ 1=↙ 2=↗ 3=↖
 
     @Environment(\.dismiss) private var dismiss
 
@@ -90,7 +91,8 @@ struct CameraCompositionView: View {
         return CompositionOverlayView(
             compositionType: activeType,
             opacity: lineOpacity,
-            color: lineColor
+            color: lineColor,
+            spiralOrientation: spiralOrientation
         )
     }
 
@@ -119,6 +121,22 @@ struct CameraCompositionView: View {
             }
 
             Spacer()
+
+            // 黄金螺旋方向切换
+            if selectedComposition == .goldenSpiral {
+                let labels = ["↘", "↙", "↗", "↖"]
+                Button {
+                    spiralOrientation = (spiralOrientation + 1) % 4
+                } label: {
+                    Text(labels[spiralOrientation])
+                        .font(.subheadline)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.white.opacity(0.25))
+                        .foregroundColor(.white)
+                        .cornerRadius(20)
+                }
+            }
 
             Button {
                 withAnimation { isSmartMode.toggle() }
