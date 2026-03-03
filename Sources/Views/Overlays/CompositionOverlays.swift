@@ -188,30 +188,31 @@ struct GoldenSpiral: View {
         let flipV = orientation == 2 || orientation == 3
 
         // Base arcs (eye at bottom-right): cx, cy, radius, startDeg, endDeg
+        // Centers are at inner corners of Fibonacci squares (facing spiral eye)
+        // clockwise: false in SwiftUI = CW on screen = angle-increasing direction
         let baseArcs: [(cx: CGFloat, cy: CGFloat, rad: CGFloat,
                          startDeg: Double, endDeg: Double)] = [
-            (0, 0, 8, 90, 0),
-            (13, 0, 5, 180, 90),
-            (13, 8, 3, 270, 180),
-            (8, 8, 2, 360, 270),
-            (8, 5, 1, 90, 0),
-            (10, 5, 1, 180, 90)
+            (8, 8, 8, 180, 270),
+            (8, 5, 5, 270, 360),
+            (10, 5, 3, 0, 90),
+            (10, 6, 2, 90, 180),
+            (9, 6, 1, 180, 270),
+            (9, 6, 1, 270, 360)
         ]
 
         Path { path in
             for (index, arc) in baseArcs.enumerated() {
                 var acx = arc.cx, acy = arc.cy
-                var sDeg = arc.startDeg, eDeg = arc.endDeg
+                var sDeg = arc.startDeg
                 if flipH {
                     acx = totalW - acx
                     sDeg = fmod(90 - sDeg + 360, 360)
-                    eDeg = fmod(90 - eDeg + 360, 360)
                 }
                 if flipV {
                     acy = totalH - acy
                     sDeg = fmod(270 - sDeg + 360, 360)
-                    eDeg = fmod(270 - eDeg + 360, 360)
                 }
+                let eDeg = sDeg + 90
 
                 let centerX = acx * scale + offX
                 let centerY = acy * scale + offY
@@ -230,7 +231,7 @@ struct GoldenSpiral: View {
                     radius: radius,
                     startAngle: .degrees(sDeg),
                     endAngle: .degrees(eDeg),
-                    clockwise: true
+                    clockwise: false
                 )
             }
         }
