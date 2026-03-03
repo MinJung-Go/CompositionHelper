@@ -210,7 +210,10 @@ class DrawScopeRenderer(
 // 构图绘制入口
 // ============================================================
 
-fun drawComposition(renderer: CompositionRenderer, type: CompositionType, width: Float, height: Float) {
+fun drawComposition(
+    renderer: CompositionRenderer, type: CompositionType,
+    width: Float, height: Float, spiralOrientation: Int = 0
+) {
     when (type) {
         CompositionType.RULE_OF_THIRDS -> drawRuleOfThirds(renderer, width, height)
         CompositionType.CENTER -> drawCenterComposition(renderer, width, height)
@@ -218,7 +221,7 @@ fun drawComposition(renderer: CompositionRenderer, type: CompositionType, width:
         CompositionType.FRAME -> drawFrameComposition(renderer, width, height)
         CompositionType.LEADING_LINES -> drawLeadingLines(renderer, width, height)
         CompositionType.S_CURVE -> drawSCurve(renderer, width, height)
-        CompositionType.GOLDEN_SPIRAL -> drawGoldenSpiral(renderer, width, height)
+        CompositionType.GOLDEN_SPIRAL -> drawGoldenSpiral(renderer, width, height, spiralOrientation)
         CompositionType.GOLDEN_TRIANGLE -> drawGoldenTriangle(renderer, width, height)
         CompositionType.SYMMETRY -> drawSymmetry(renderer, width, height)
         CompositionType.NEGATIVE_SPACE -> drawNegativeSpace(renderer, width, height)
@@ -285,30 +288,37 @@ private fun drawSCurve(r: CompositionRenderer, w: Float, h: Float) {
 }
 
 // 黄金螺旋 — Fibonacci quarter-circle arcs in a 13×8 golden rectangle
-private fun drawGoldenSpiral(r: CompositionRenderer, w: Float, h: Float) {
-    // Fibonacci squares: 8, 5, 3, 2, 1, 1 tiled in a 13×8 golden rectangle
+// orientation: 0=↘右下  1=↙左下  2=↗右上  3=↖左上
+private fun drawGoldenSpiral(r: CompositionRenderer, w: Float, h: Float, orientation: Int = 0) {
     val totalW = 13f
     val totalH = 8f
     val scale = (w / totalW).coerceAtMost(h / totalH)
     val offsetX = (w - totalW * scale) / 2
     val offsetY = (h - totalH * scale) / 2
 
-    // Each arc: (centerX, centerY, radius, startAngle) in Fibonacci units
-    // Center is at the corner of the Fibonacci square where the spiral pivots
+    val flipH = orientation == 1 || orientation == 3
+    val flipV = orientation == 2 || orientation == 3
+
+    // Base arcs (eye at bottom-right): centerX, centerY, radius, startAngle
     val arcs = arrayOf(
-        floatArrayOf(0f, 0f, 8f, 0f),      // 8-square, center at top-left
-        floatArrayOf(13f, 0f, 5f, 90f),     // 5-square, center at top-right
-        floatArrayOf(13f, 8f, 3f, 180f),    // 3-square, center at bottom-right
-        floatArrayOf(8f, 8f, 2f, 270f),     // 2-square, center at bottom-left
-        floatArrayOf(8f, 5f, 1f, 0f),       // 1-square, center at top-left
-        floatArrayOf(10f, 5f, 1f, 90f)      // 1-square, center at top-right
+        floatArrayOf(0f, 0f, 8f, 0f),
+        floatArrayOf(13f, 0f, 5f, 90f),
+        floatArrayOf(13f, 8f, 3f, 180f),
+        floatArrayOf(8f, 8f, 2f, 270f),
+        floatArrayOf(8f, 5f, 1f, 0f),
+        floatArrayOf(10f, 5f, 1f, 90f)
     )
 
     for (arc in arcs) {
-        val cx = arc[0] * scale + offsetX
-        val cy = arc[1] * scale + offsetY
-        val rad = arc[2] * scale
-        r.drawArc(cx - rad, cy - rad, cx + rad, cy + rad, arc[3], 90f)
+        var acx = arc[0]; var acy = arc[1]; var angle = arc[3]
+        val rad = arc[2]
+        if (flipH) { acx = totalW - acx; angle = (90f - angle + 360f) % 360f }
+        if (flipV) { acy = totalH - acy; angle = (270f - angle + 360f) % 360f }
+
+        val cx = acx * scale + offsetX
+        val cy = acy * scale + offsetY
+        val sr = rad * scale
+        r.drawArc(cx - sr, cy - sr, cx + sr, cy + sr, angle, 90f)
     }
 }
 

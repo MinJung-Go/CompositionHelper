@@ -41,6 +41,7 @@ fun CameraCompositionScreen(
     var selectedCategory by remember { mutableStateOf(CompositionCategory.CLASSIC) }
     var lineOpacity by remember { mutableStateOf(0.7f) }
     var lineColor by remember { mutableStateOf(Color.Yellow) }
+    var spiralOrientation by remember { mutableStateOf(0) } // 0=↘ 1=↙ 2=↗ 3=↖
 
     // 模式与 UI 控制
     var isSmartMode by remember { mutableStateOf(false) }
@@ -116,6 +117,7 @@ fun CameraCompositionScreen(
             lineOpacity = lineOpacity,
             lineColor = lineColor,
             detectedSubjects = if (isSmartMode) detectedSubjects else emptyList(),
+            spiralOrientation = spiralOrientation,
             modifier = Modifier.fillMaxSize()
         )
 
@@ -180,6 +182,23 @@ fun CameraCompositionScreen(
                             )
                             Text(
                                 if (isSmartMode) "智能" else "手动",
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                    }
+
+                    // 黄金螺旋方向切换按钮
+                    if (compositionType == CompositionType.GOLDEN_SPIRAL) {
+                        val orientationLabels = arrayOf("↘", "↙", "↗", "↖")
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = Color.White.copy(alpha = 0.25f),
+                            onClick = { spiralOrientation = (spiralOrientation + 1) % 4 }
+                        ) {
+                            Text(
+                                orientationLabels[spiralOrientation],
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                 color = Color.White,
                                 style = MaterialTheme.typography.labelMedium
                             )

@@ -25,6 +25,7 @@ fun CameraCompositionOverlay(
     lineOpacity: Float,
     lineColor: Color,
     detectedSubjects: List<DetectedSubject> = emptyList(),
+    spiralOrientation: Int = 0,
     modifier: Modifier = Modifier
 ) {
     Canvas(modifier = modifier.fillMaxSize()) {
@@ -36,7 +37,7 @@ fun CameraCompositionOverlay(
         )
 
         // Layer 1: 绘制构图引导线
-        drawComposition(renderer, compositionType, size.width, size.height)
+        drawComposition(renderer, compositionType, size.width, size.height, spiralOrientation)
 
         // Layer 3: 绘制检测到的主体边界框
         detectedSubjects.forEach { subject ->
@@ -57,7 +58,7 @@ fun CameraCompositionOverlay(
 
         // Layer 3: 绘制对齐指示器
         if (detectedSubjects.isNotEmpty()) {
-            val keyPoints = getCompositionKeyPoints(compositionType)
+            val keyPoints = getCompositionKeyPoints(compositionType, spiralOrientation)
             val alignThreshold = 40.dp.toPx()
             val nearThreshold = 100.dp.toPx()
 
@@ -103,14 +104,18 @@ fun CameraCompositionOverlay(
 /**
  * 返回每种构图类型的关键对齐点（归一化坐标 0~1）
  */
-fun getCompositionKeyPoints(type: CompositionType): List<PointF> {
+fun getCompositionKeyPoints(type: CompositionType, spiralOrientation: Int = 0): List<PointF> {
     return when (type) {
         CompositionType.RULE_OF_THIRDS -> listOf(
             PointF(1f / 3f, 1f / 3f), PointF(2f / 3f, 1f / 3f),
             PointF(1f / 3f, 2f / 3f), PointF(2f / 3f, 2f / 3f)
         )
         CompositionType.CENTER -> listOf(PointF(0.5f, 0.5f))
-        CompositionType.GOLDEN_SPIRAL -> listOf(PointF(0.382f, 0.618f))
+        CompositionType.GOLDEN_SPIRAL -> {
+            val fx = if (spiralOrientation == 1 || spiralOrientation == 3) 1f - 0.77f else 0.77f
+            val fy = if (spiralOrientation == 2 || spiralOrientation == 3) 1f - 0.625f else 0.625f
+            listOf(PointF(fx, fy))
+        }
         CompositionType.GOLDEN_TRIANGLE -> listOf(
             PointF(0.382f, 0.618f), PointF(0.618f, 0.382f)
         )
