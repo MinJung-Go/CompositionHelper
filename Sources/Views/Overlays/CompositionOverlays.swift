@@ -168,43 +168,52 @@ struct SCurvePath: View {
     }
 }
 
-// MARK: - 黄金螺旋
+// MARK: - 黄金螺旋 — Fibonacci quarter-circle arcs in a 13×8 golden rectangle
 struct GoldenSpiral: View {
     let size: CGSize
     let opacity: Double
     let color: Color
 
     var body: some View {
-        let phi = (1 + sqrt(5)) / 2
-        let minSide = min(size.width, size.height)
+        // Fibonacci squares: 8, 5, 3, 2, 1, 1 tiled in a 13×8 golden rectangle
+        let totalW: CGFloat = 13
+        let totalH: CGFloat = 8
+        let scale = min(size.width / totalW, size.height / totalH)
+        let offX = (size.width - totalW * scale) / 2
+        let offY = (size.height - totalH * scale) / 2
+
+        // (centerX, centerY, radius, startAngle, endAngle) in Fibonacci units
+        let arcs: [(cx: CGFloat, cy: CGFloat, rad: CGFloat,
+                     startDeg: Double, endDeg: Double)] = [
+            (0, 0, 8, 90, 0),       // 8-square, pivot at top-left
+            (13, 0, 5, 180, 90),     // 5-square, pivot at top-right
+            (13, 8, 3, 270, 180),    // 3-square, pivot at bottom-right
+            (8, 8, 2, 360, 270),     // 2-square, pivot at bottom-left
+            (8, 5, 1, 90, 0),        // 1-square, pivot at top-left
+            (10, 5, 1, 180, 90)      // 1-square, pivot at top-right
+        ]
 
         Path { path in
-            var currentSize = minSide
-            var posX: CGFloat = 0
-            var posY: CGFloat = 0
-            var direction = 0
+            for (index, arc) in arcs.enumerated() {
+                let centerX = arc.cx * scale + offX
+                let centerY = arc.cy * scale + offY
+                let radius = arc.rad * scale
 
-            path.move(to: CGPoint(x: posX, y: posY))
-
-            for _ in 0..<8 {
-                switch direction {
-                case 0: posX += currentSize
-                case 1: posY += currentSize
-                case 2: posX -= currentSize
-                case 3: posY -= currentSize
-                default: break
+                if index == 0 {
+                    let startRad = Angle.degrees(arc.startDeg).radians
+                    path.move(to: CGPoint(
+                        x: centerX + radius * cos(startRad),
+                        y: centerY + radius * sin(startRad)
+                    ))
                 }
 
                 path.addArc(
-                    center: CGPoint(x: posX, y: posY),
-                    radius: currentSize,
-                    startAngle: .degrees(Double(direction) * 90),
-                    endAngle: .degrees(Double(direction + 1) * 90),
-                    clockwise: false
+                    center: CGPoint(x: centerX, y: centerY),
+                    radius: radius,
+                    startAngle: .degrees(arc.startDeg),
+                    endAngle: .degrees(arc.endDeg),
+                    clockwise: true
                 )
-
-                currentSize /= phi
-                direction = (direction + 1) % 4
             }
         }
         .stroke(color.opacity(opacity), lineWidth: 2)
