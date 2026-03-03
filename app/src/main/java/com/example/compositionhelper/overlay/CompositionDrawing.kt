@@ -300,13 +300,14 @@ private fun drawGoldenSpiral(r: CompositionRenderer, w: Float, h: Float, orienta
     val flipV = orientation == 2 || orientation == 3
 
     // Base arcs (eye at bottom-right): centerX, centerY, radius, startAngle
+    // Centers are at inner corners of Fibonacci squares (facing spiral eye)
     val arcs = arrayOf(
-        floatArrayOf(0f, 0f, 8f, 0f),
-        floatArrayOf(13f, 0f, 5f, 90f),
-        floatArrayOf(13f, 8f, 3f, 180f),
-        floatArrayOf(8f, 8f, 2f, 270f),
-        floatArrayOf(8f, 5f, 1f, 0f),
-        floatArrayOf(10f, 5f, 1f, 90f)
+        floatArrayOf(8f, 8f, 8f, 180f),
+        floatArrayOf(8f, 5f, 5f, 270f),
+        floatArrayOf(10f, 5f, 3f, 0f),
+        floatArrayOf(10f, 6f, 2f, 90f),
+        floatArrayOf(9f, 6f, 1f, 180f),
+        floatArrayOf(9f, 6f, 1f, 270f)
     )
 
     for (arc in arcs) {
