@@ -3,6 +3,8 @@ package com.example.compositionhelper.camera
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import android.util.Rational
+import android.view.Surface
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -78,11 +80,17 @@ class CameraManager(
 
         try {
             provider.unbindAll()
-            provider.bindToLifecycle(
-                lifecycleOwner,
-                cameraSelector,
-                *useCases.toTypedArray()
-            )
+            val displayMetrics = context.resources.displayMetrics
+            val rotation = previewView.display?.rotation ?: Surface.ROTATION_0
+            val viewPort = ViewPort.Builder(
+                Rational(displayMetrics.widthPixels, displayMetrics.heightPixels),
+                rotation
+            ).build()
+            val useCaseGroup = UseCaseGroup.Builder()
+                .apply { useCases.forEach { addUseCase(it) } }
+                .setViewPort(viewPort)
+                .build()
+            provider.bindToLifecycle(lifecycleOwner, cameraSelector, useCaseGroup)
             Log.d(TAG, "Camera bound with ${useCases.size} use cases")
         } catch (e: Exception) {
             Log.e(TAG, "Camera binding failed: ${e.message}")
