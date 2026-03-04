@@ -253,7 +253,7 @@ private fun drawRuleOfThirds(r: CompositionRenderer, w: Float, h: Float) {
 private fun drawCenterComposition(r: CompositionRenderer, w: Float, h: Float) {
     r.drawLine(w / 2, 0f, w / 2, h)
     r.drawLine(0f, h / 2, w, h / 2)
-    r.drawCircle(w / 2, h / 2, 50f)
+    r.drawCircle(w / 2, h / 2, minOf(w, h) * 0.07f)
 }
 
 // 对角线
@@ -287,11 +287,13 @@ private fun drawSCurve(r: CompositionRenderer, w: Float, h: Float) {
     ))
 }
 
-// 黄金螺旋 — Fibonacci quarter-circle arcs in a 13×8 golden rectangle
-// orientation: 0=↘右下  1=↙左下  2=↗右上  3=↖左上
+// 黄金螺旋 — Fibonacci quarter-circle arcs
+// 横屏：13×8 景观格网；竖屏：8×13 格网（顺时针旋转90°）
+// orientation: 0=↘  1=↙  2=↗  3=↖
 private fun drawGoldenSpiral(r: CompositionRenderer, w: Float, h: Float, orientation: Int = 0) {
-    val totalW = 13f
-    val totalH = 8f
+    val portrait = h > w
+    val totalW = if (portrait) 8f else 13f
+    val totalH = if (portrait) 13f else 8f
     val scale = (w / totalW).coerceAtMost(h / totalH)
     val offsetX = (w - totalW * scale) / 2
     val offsetY = (h - totalH * scale) / 2
@@ -299,15 +301,23 @@ private fun drawGoldenSpiral(r: CompositionRenderer, w: Float, h: Float, orienta
     val flipH = orientation == 1 || orientation == 3
     val flipV = orientation == 2 || orientation == 3
 
-    // Base arcs (eye at bottom-right): centerX, centerY, radius, startAngle
-    // Centers are at inner corners of Fibonacci squares (facing spiral eye)
-    val arcs = arrayOf(
-        floatArrayOf(8f, 8f, 8f, 180f),
-        floatArrayOf(8f, 5f, 5f, 270f),
-        floatArrayOf(10f, 5f, 3f, 0f),
-        floatArrayOf(10f, 6f, 2f, 90f),
-        floatArrayOf(9f, 6f, 1f, 180f),
-        floatArrayOf(9f, 6f, 1f, 270f)
+    // Base arcs: centerX, centerY, radius, startAngle
+    // Landscape (13×8): eye at bottom-right
+    // Portrait (8×13): landscape arcs rotated 90° CW → (cx,cy)→(8-cy,cx), angle+90
+    val arcs = if (portrait) arrayOf(
+        floatArrayOf(0f,  8f, 8f, 270f),
+        floatArrayOf(3f,  8f, 5f,   0f),
+        floatArrayOf(3f, 10f, 3f,  90f),
+        floatArrayOf(2f, 10f, 2f, 180f),
+        floatArrayOf(2f,  9f, 1f, 270f),
+        floatArrayOf(2f,  9f, 1f,   0f)
+    ) else arrayOf(
+        floatArrayOf(8f,  8f, 8f, 180f),
+        floatArrayOf(8f,  5f, 5f, 270f),
+        floatArrayOf(10f, 5f, 3f,   0f),
+        floatArrayOf(10f, 6f, 2f,  90f),
+        floatArrayOf(9f,  6f, 1f, 180f),
+        floatArrayOf(9f,  6f, 1f, 270f)
     )
 
     for (arc in arcs) {
@@ -323,21 +333,29 @@ private fun drawGoldenSpiral(r: CompositionRenderer, w: Float, h: Float, orienta
     }
 }
 
-// 黄金三角
+// 黄金三角 — 主对角线 + 两条垂线，覆盖整幅画面
+// 从两个非对角线角各作一条垂线垂直于主对角线，将画面分成3个三角形
 private fun drawGoldenTriangle(r: CompositionRenderer, w: Float, h: Float) {
-    r.drawPath(listOf(
-        PathCommand.MoveTo(0f, 0f),
-        PathCommand.LineTo(w, h),
-        PathCommand.LineTo(0f, h),
-        PathCommand.Close
-    ))
-    val splitX = w / 1.618f
-    r.drawPath(listOf(
-        PathCommand.MoveTo(splitX, h),
-        PathCommand.LineTo(splitX, h - (h / 1.618f)),
-        PathCommand.LineTo(0f, h - (h / 1.618f)),
-        PathCommand.Close
-    ))
+    // 主对角线 (0,0) → (w,h)
+    r.drawLine(0f, 0f, w, h)
+
+    // 从 (w,0) 作垂线（斜率 = -w/h），延伸至对边
+    if (h > w) {
+        // 竖屏：垂线交 x=0 边，y = w²/h
+        r.drawLine(w, 0f, 0f, w * w / h)
+    } else {
+        // 横屏：垂线交 y=h 边，x = (w²-h²)/w
+        r.drawLine(w, 0f, (w * w - h * h) / w, h)
+    }
+
+    // 从 (0,h) 作垂线（斜率 = -w/h），延伸至对边
+    if (h > w) {
+        // 竖屏：垂线交 x=w 边，y = (h²-w²)/h
+        r.drawLine(0f, h, w, (h * h - w * w) / h)
+    } else {
+        // 横屏：垂线交 y=0 边，x = h²/w
+        r.drawLine(0f, h, h * h / w, 0f)
+    }
 }
 
 // 对称构图
@@ -350,7 +368,7 @@ private fun drawSymmetry(r: CompositionRenderer, w: Float, h: Float) {
         Pair(w * 0.25f, h * 0.75f),
         Pair(w * 0.75f, h * 0.75f)
     )
-    corners.forEach { (cx, cy) -> r.drawCircle(cx, cy, 10f) }
+    corners.forEach { (cx, cy) -> r.drawCircle(cx, cy, minOf(w, h) * 0.015f) }
 }
 
 // 负空间
@@ -379,8 +397,9 @@ private fun drawPatternRepeat(r: CompositionRenderer, w: Float, h: Float) {
             r.drawRect(x, y, x + rw, y + rh)
             val cx = x + rw / 2
             val cy = y + rh / 2
-            r.drawLine(cx - 3, cy, cx + 3, cy)
-            r.drawLine(cx, cy - 3, cx, cy + 3)
+            val ch = minOf(cellWidth, cellHeight) * 0.06f
+            r.drawLine(cx - ch, cy, cx + ch, cy)
+            r.drawLine(cx, cy - ch, cx, cy + ch)
         }
     }
 }
@@ -399,7 +418,7 @@ private fun drawTunnel(r: CompositionRenderer, w: Float, h: Float) {
             centerX + currentWidth / 2, centerY + currentHeight / 2
         )
     }
-    r.drawCircle(centerX, centerY, 8f)
+    r.drawCircle(centerX, centerY, minOf(w, h) * 0.012f)
 }
 
 // 分割构图
@@ -423,7 +442,7 @@ private fun drawPerspective(r: CompositionRenderer, w: Float, h: Float) {
         Pair(0f, h * 0.3f), Pair(w, h * 0.3f)
     )
     points.forEach { (x, y) -> r.drawLine(centerX, centerY, x, y) }
-    r.drawCircle(centerX, centerY, 6f)
+    r.drawCircle(centerX, centerY, minOf(w, h) * 0.01f)
 }
 
 // 隐形线
@@ -434,7 +453,7 @@ private fun drawInvisibleLine(r: CompositionRenderer, w: Float, h: Float) {
         PathCommand.CubicTo(w * 0.2f, h * 0.3f, w * 0.8f, h * 0.7f, w * 0.8f, h * 0.2f)
     ))
     r.clearDashEffect()
-    r.drawCircle(w * 0.8f, h * 0.2f, 20f)
+    r.drawCircle(w * 0.8f, h * 0.2f, minOf(w, h) * 0.04f)
 }
 
 // 充满画面
