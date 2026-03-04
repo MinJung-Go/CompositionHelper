@@ -91,9 +91,10 @@ struct CenterComposition: View {
             }
             .stroke(color.opacity(opacity), lineWidth: 2)
 
+            let d = min(size.width, size.height) * 0.14
             Circle()
                 .stroke(color.opacity(opacity), lineWidth: 2)
-                .frame(width: 100, height: 100)
+                .frame(width: d, height: d)
         }
     }
 }
@@ -169,8 +170,9 @@ struct SCurvePath: View {
     }
 }
 
-// MARK: - 黄金螺旋 — Fibonacci quarter-circle arcs in a 13×8 golden rectangle
-// orientation: 0=↘右下  1=↙左下  2=↗右上  3=↖左上
+// MARK: - 黄金螺旋 — Fibonacci quarter-circle arcs
+// 横屏：13×8 景观格网；竖屏：8×13 格网（顺时针旋转90°）
+// orientation: 0=↘  1=↙  2=↗  3=↖
 struct GoldenSpiral: View {
     let size: CGSize
     let opacity: Double
@@ -178,8 +180,9 @@ struct GoldenSpiral: View {
     var orientation: Int = 0
 
     var body: some View {
-        let totalW: CGFloat = 13
-        let totalH: CGFloat = 8
+        let portrait = size.height > size.width
+        let totalW: CGFloat = portrait ? 8 : 13
+        let totalH: CGFloat = portrait ? 13 : 8
         let scale = min(size.width / totalW, size.height / totalH)
         let offX = (size.width - totalW * scale) / 2
         let offY = (size.height - totalH * scale) / 2
@@ -187,17 +190,23 @@ struct GoldenSpiral: View {
         let flipH = orientation == 1 || orientation == 3
         let flipV = orientation == 2 || orientation == 3
 
-        // Base arcs (eye at bottom-right): cx, cy, radius, startDeg, endDeg
-        // Centers are at inner corners of Fibonacci squares (facing spiral eye)
+        // Base arcs: cx, cy, radius, startDeg
+        // Portrait (8×13): landscape arcs rotated 90° CW
         // clockwise: false in SwiftUI = CW on screen = angle-increasing direction
-        let baseArcs: [(cx: CGFloat, cy: CGFloat, rad: CGFloat,
-                         startDeg: Double, endDeg: Double)] = [
-            (8, 8, 8, 180, 270),
-            (8, 5, 5, 270, 360),
-            (10, 5, 3, 0, 90),
-            (10, 6, 2, 90, 180),
-            (9, 6, 1, 180, 270),
-            (9, 6, 1, 270, 360)
+        let baseArcs: [(cx: CGFloat, cy: CGFloat, rad: CGFloat, startDeg: Double)] = portrait ? [
+            (0,  8, 8, 270),
+            (3,  8, 5,   0),
+            (3, 10, 3,  90),
+            (2, 10, 2, 180),
+            (2,  9, 1, 270),
+            (2,  9, 1,   0)
+        ] : [
+            (8,  8, 8, 180),
+            (8,  5, 5, 270),
+            (10, 5, 3,   0),
+            (10, 6, 2,  90),
+            (9,  6, 1, 180),
+            (9,  6, 1, 270)
         ]
 
         Path { path in
@@ -239,26 +248,35 @@ struct GoldenSpiral: View {
     }
 }
 
-// MARK: - 黄金三角
+// MARK: - 黄金三角 — 主对角线 + 两条垂线，覆盖整幅画面
 struct GoldenTriangle: View {
     let size: CGSize
     let opacity: Double
     let color: Color
 
     var body: some View {
-        let phi = (1 + sqrt(5)) / 2
+        let w = size.width, h = size.height
 
         Path { path in
-            path.move(to: CGPoint(x: 0, y: 0))
-            path.addLine(to: CGPoint(x: size.width, y: size.height))
-            path.addLine(to: CGPoint(x: 0, y: size.height))
-            path.closeSubpath()
+            // 主对角线 (0,0) → (w,h)
+            path.move(to: .zero)
+            path.addLine(to: CGPoint(x: w, y: h))
 
-            let splitX = size.width / phi
-            path.move(to: CGPoint(x: splitX, y: size.height))
-            path.addLine(to: CGPoint(x: splitX, y: size.height - (size.height / phi)))
-            path.addLine(to: CGPoint(x: 0, y: size.height - (size.height / phi)))
-            path.closeSubpath()
+            // 从 (w,0) 作垂线（斜率 -w/h），延伸至对边
+            path.move(to: CGPoint(x: w, y: 0))
+            if h > w {
+                path.addLine(to: CGPoint(x: 0, y: w * w / h))
+            } else {
+                path.addLine(to: CGPoint(x: (w * w - h * h) / w, y: h))
+            }
+
+            // 从 (0,h) 作垂线（斜率 -w/h），延伸至对边
+            path.move(to: CGPoint(x: 0, y: h))
+            if h > w {
+                path.addLine(to: CGPoint(x: w, y: (h * h - w * w) / h))
+            } else {
+                path.addLine(to: CGPoint(x: h * h / w, y: 0))
+            }
         }
         .stroke(color.opacity(opacity), lineWidth: 2)
     }
@@ -284,12 +302,13 @@ struct SymmetryGrid: View {
             }
             .stroke(color.opacity(opacity), lineWidth: 3)
 
+            let cd = min(size.width, size.height) * 0.03
             ForEach(0..<4, id: \.self) { idx in
                 let posX: CGFloat = (idx % 2 == 0) ? size.width * 0.25 : size.width * 0.75
                 let posY: CGFloat = (idx < 2) ? size.height * 0.25 : size.height * 0.75
                 Circle()
                     .stroke(color.opacity(opacity), lineWidth: 2)
-                    .frame(width: 20, height: 20)
+                    .frame(width: cd, height: cd)
                     .position(x: posX, y: posY)
             }
         }
@@ -346,14 +365,15 @@ struct PatternGrid: View {
             Path { path in
                 let cellWidth = size.width / 3
                 let cellHeight = size.height / 3
+                let ch = min(cellWidth, cellHeight) * 0.06
                 for row in 0..<3 {
                     for col in 0..<3 {
                         let centerX = CGFloat(col) * cellWidth + cellWidth * 0.5
                         let centerY = CGFloat(row) * cellHeight + cellHeight * 0.5
-                        path.move(to: CGPoint(x: centerX - 3, y: centerY))
-                        path.addLine(to: CGPoint(x: centerX + 3, y: centerY))
-                        path.move(to: CGPoint(x: centerX, y: centerY - 3))
-                        path.addLine(to: CGPoint(x: centerX, y: centerY + 3))
+                        path.move(to: CGPoint(x: centerX - ch, y: centerY))
+                        path.addLine(to: CGPoint(x: centerX + ch, y: centerY))
+                        path.move(to: CGPoint(x: centerX, y: centerY - ch))
+                        path.addLine(to: CGPoint(x: centerX, y: centerY + ch))
                     }
                 }
             }
@@ -382,9 +402,10 @@ struct TunnelView: View {
             }
             .stroke(color.opacity(opacity), lineWidth: 2)
 
+            let td = min(size.width, size.height) * 0.024
             Circle()
                 .fill(color.opacity(opacity * 0.5))
-                .frame(width: 8, height: 8)
+                .frame(width: td, height: td)
                 .position(x: size.width / 2, y: size.height / 2)
         }
     }
@@ -445,9 +466,10 @@ struct PerspectiveGrid: View {
             }
             .stroke(color.opacity(opacity), lineWidth: 1.5)
 
+            let pd = min(size.width, size.height) * 0.02
             Circle()
                 .fill(color)
-                .frame(width: 6, height: 6)
+                .frame(width: pd, height: pd)
                 .position(x: centerX, y: centerY)
         }
     }
@@ -478,9 +500,10 @@ struct InvisibleLineView: View {
             }
             .stroke(color.opacity(opacity), style: StrokeStyle(lineWidth: 3, dash: [15, 10]))
 
+            let id = min(size.width, size.height) * 0.08
             Circle()
                 .stroke(color.opacity(opacity), lineWidth: 3)
-                .frame(width: 40, height: 40)
+                .frame(width: id, height: id)
                 .position(x: endX, y: endY)
         }
     }
