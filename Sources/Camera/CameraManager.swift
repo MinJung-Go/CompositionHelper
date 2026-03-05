@@ -152,8 +152,28 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         guard let data = photo.fileDataRepresentation(),
               let image = UIImage(data: data) else { return }
 
+        let cropped = Self.cropToPreviewAspect(image)
         DispatchQueue.main.async {
-            self.capturedPhoto = image
+            self.capturedPhoto = cropped
+        }
+    }
+
+    /// 将拍摄的照片裁剪为与 resizeAspectFill 预览一致的可见区域
+    static func cropToPreviewAspect(_ image: UIImage) -> UIImage {
+        let screenSize = UIScreen.main.bounds.size
+        let imgSize = image.size
+        // resizeAspectFill: 缩放至短边匹配屏幕，长边裁剪
+        let scale = max(screenSize.width / imgSize.width, screenSize.height / imgSize.height)
+        let visibleW = screenSize.width / scale
+        let visibleH = screenSize.height / scale
+        let cropOrigin = CGPoint(
+            x: (imgSize.width - visibleW) / 2,
+            y: (imgSize.height - visibleH) / 2
+        )
+        let cropSize = CGSize(width: visibleW, height: visibleH)
+        let renderer = UIGraphicsImageRenderer(size: cropSize)
+        return renderer.image { _ in
+            image.draw(at: CGPoint(x: -cropOrigin.x, y: -cropOrigin.y))
         }
     }
 }
