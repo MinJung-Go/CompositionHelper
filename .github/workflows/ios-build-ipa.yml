@@ -26,36 +26,45 @@ jobs:
     - name: Show Xcode version
       run: xcodebuild -version
 
-    - name: Build Archive
+    - name: List schemes
+      run: xcodebuild -project "$PROJECT" -list
+
+    - name: Build Release .app
       run: |
-        xcodebuild archive \
+        BUILD_DIR=$RUNNER_TEMP/build
+        xcodebuild build \
           -project "$PROJECT" \
           -scheme "$SCHEME" \
           -destination 'generic/platform=iOS' \
-          -archivePath $RUNNER_TEMP/CompositionHelper.xcarchive \
           -configuration Release \
+          -derivedDataPath "$BUILD_DIR" \
           CODE_SIGNING_ALLOWED=NO \
           CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGN_IDENTITY="" \
-          CODE_SIGN_ENTITLEMENTS="" \
-          SKIP_INSTALL=NO \
-          BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
-          | xcpretty || true
+          CODE_SIGN_IDENTITY="-" \
+          2>&1 | tee $RUNNER_TEMP/build.log | tail -50
+        echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
 
-    - name: Create IPA
+    - name: Find .app and create IPA
       run: |
-        mkdir -p $RUNNER_TEMP/Payload
-        APP_PATH="$RUNNER_TEMP/CompositionHelper.xcarchive/Products/Applications/CompositionHelper.app"
-        if [ -d "$APP_PATH" ]; then
-          cp -r "$APP_PATH" $RUNNER_TEMP/Payload/
-          cd $RUNNER_TEMP
-          zip -r CompositionHelper.ipa Payload
-          echo "✅ IPA created"
-        else
-          echo "❌ .app not found, listing archive:"
-          find $RUNNER_TEMP/CompositionHelper.xcarchive -type d -maxdepth 4 || true
+        echo "=== Searching for .app ==="
+        find "$BUILD_DIR" -name "*.app" -type d 2>/dev/null
+
+        APP_PATH=$(find "$BUILD_DIR" -name "*.app" -type d | head -1)
+        if [ -z "$APP_PATH" ]; then
+          echo "❌ .app not found"
+          echo "=== Build directory contents ==="
+          find "$BUILD_DIR" -maxdepth 5 -type d
+          echo "=== Last 100 lines of build log ==="
+          tail -100 $RUNNER_TEMP/build.log
           exit 1
         fi
+
+        echo "✅ Found: $APP_PATH"
+        mkdir -p $RUNNER_TEMP/Payload
+        cp -r "$APP_PATH" $RUNNER_TEMP/Payload/
+        cd $RUNNER_TEMP
+        zip -r CompositionHelper.ipa Payload
+        echo "✅ IPA created: $(du -h CompositionHelper.ipa | cut -f1)"
 
     - name: Upload IPA
       uses: actions/upload-artifact@v4
