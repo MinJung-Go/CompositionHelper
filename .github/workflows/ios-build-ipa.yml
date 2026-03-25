@@ -1,0 +1,65 @@
+name: iOS Build IPA
+
+on:
+  push:
+    branches: [ ios ]
+  pull_request:
+    branches: [ ios ]
+  workflow_dispatch:
+
+env:
+  SCHEME: CompositionHelper
+  PROJECT: CompositionHelper.xcodeproj
+
+jobs:
+  build:
+    name: Build Unsigned IPA
+    runs-on: macos-14
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Select Xcode
+      run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+
+    - name: Show Xcode version
+      run: xcodebuild -version
+
+    - name: Build Archive
+      run: |
+        xcodebuild archive \
+          -project "$PROJECT" \
+          -scheme "$SCHEME" \
+          -destination 'generic/platform=iOS' \
+          -archivePath $RUNNER_TEMP/CompositionHelper.xcarchive \
+          -configuration Release \
+          CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGN_ENTITLEMENTS="" \
+          SKIP_INSTALL=NO \
+          BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+          | xcpretty || true
+
+    - name: Create IPA
+      run: |
+        mkdir -p $RUNNER_TEMP/Payload
+        APP_PATH="$RUNNER_TEMP/CompositionHelper.xcarchive/Products/Applications/CompositionHelper.app"
+        if [ -d "$APP_PATH" ]; then
+          cp -r "$APP_PATH" $RUNNER_TEMP/Payload/
+          cd $RUNNER_TEMP
+          zip -r CompositionHelper.ipa Payload
+          echo "✅ IPA created"
+        else
+          echo "❌ .app not found, listing archive:"
+          find $RUNNER_TEMP/CompositionHelper.xcarchive -type d -maxdepth 4 || true
+          exit 1
+        fi
+
+    - name: Upload IPA
+      uses: actions/upload-artifact@v4
+      with:
+        name: CompositionHelper-unsigned
+        path: ${{ runner.temp }}/CompositionHelper.ipa
+        retention-days: 30
