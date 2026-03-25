@@ -10,6 +10,16 @@
 		A1000001 /* CompositionHelperApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000001 /* CompositionHelperApp.swift */; };
 		A1000002 /* CompositionHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002 /* CompositionHelper.swift */; };
 		A1000003 /* CompositionAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000003 /* CompositionAnalyzer.swift */; };
+		A1000004 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000005 /* ContentView.swift */; };
+		A1000005 /* CompositionOverlays.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000006 /* CompositionOverlays.swift */; };
+		A1000006 /* CompositionType.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000007 /* CompositionType.swift */; };
+		A1000007 /* AnalysisModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000008 /* AnalysisModels.swift */; };
+		A1000008 /* CameraCompositionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000009 /* CameraCompositionView.swift */; };
+		A1000009 /* FrameAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000A /* FrameAnalyzer.swift */; };
+		A100000A /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000B /* CameraManager.swift */; };
+		A100000B /* ShutterButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000C /* ShutterButton.swift */; };
+		A100000C /* RecommendationChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000D /* RecommendationChip.swift */; };
+		A100000D /* ControlPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000E /* ControlPanel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -18,6 +28,16 @@
 		A2000002 /* CompositionHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompositionHelper.swift; sourceTree = "<group>"; };
 		A2000003 /* CompositionAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompositionAnalyzer.swift; sourceTree = "<group>"; };
 		A2000004 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A2000005 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A2000006 /* CompositionOverlays.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompositionOverlays.swift; sourceTree = "<group>"; };
+		A2000007 /* CompositionType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompositionType.swift; sourceTree = "<group>"; };
+		A2000008 /* AnalysisModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisModels.swift; sourceTree = "<group>"; };
+		A2000009 /* CameraCompositionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraCompositionView.swift; sourceTree = "<group>"; };
+		A200000A /* FrameAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameAnalyzer.swift; sourceTree = "<group>"; };
+		A200000B /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
+		A200000C /* ShutterButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShutterButton.swift; sourceTree = "<group>"; };
+		A200000D /* RecommendationChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendationChip.swift; sourceTree = "<group>"; };
+		A200000E /* ControlPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPanel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -34,18 +54,10 @@
 		A4000001 = {
 			isa = PBXGroup;
 			children = (
-				A4000002 /* CompositionHelper */,
-				A4000003 /* Products */,
-			);
-			sourceTree = "<group>";
-		};
-		A4000002 /* CompositionHelper */ = {
-			isa = PBXGroup;
-			children = (
 				A4000004 /* Sources */,
 				A2000004 /* Info.plist */,
+				A4000003 /* Products */,
 			);
-			path = CompositionHelper;
 			sourceTree = "<group>";
 		};
 		A4000003 /* Products */ = {
@@ -60,10 +72,68 @@
 			isa = PBXGroup;
 			children = (
 				A2000001 /* CompositionHelperApp.swift */,
-				A2000002 /* CompositionHelper.swift */,
-				A2000003 /* CompositionAnalyzer.swift */,
+				A4000005 /* Views */,
+				A4000006 /* Analyzers */,
+				A4000007 /* Models */,
+				A4000008 /* Camera */,
+				A4000009 /* Components */,
 			);
 			path = Sources;
+			sourceTree = "<group>";
+		};
+		A4000005 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A2000002 /* CompositionHelper.swift */,
+				A2000005 /* ContentView.swift */,
+				A400000A /* Overlays */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		A400000A /* Overlays */ = {
+			isa = PBXGroup;
+			children = (
+				A2000006 /* CompositionOverlays.swift */,
+			);
+			path = Overlays;
+			sourceTree = "<group>";
+		};
+		A4000006 /* Analyzers */ = {
+			isa = PBXGroup;
+			children = (
+				A2000003 /* CompositionAnalyzer.swift */,
+			);
+			path = Analyzers;
+			sourceTree = "<group>";
+		};
+		A4000007 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A2000007 /* CompositionType.swift */,
+				A2000008 /* AnalysisModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A4000008 /* Camera */ = {
+			isa = PBXGroup;
+			children = (
+				A2000009 /* CameraCompositionView.swift */,
+				A200000A /* FrameAnalyzer.swift */,
+				A200000B /* CameraManager.swift */,
+			);
+			path = Camera;
+			sourceTree = "<group>";
+		};
+		A4000009 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				A200000C /* ShutterButton.swift */,
+				A200000D /* RecommendationChip.swift */,
+				A200000E /* ControlPanel.swift */,
+			);
+			path = Components;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -73,8 +143,8 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = A6000001 /* Build configuration list for PBXNativeTarget "CompositionHelper" */;
 			buildPhases = (
-				A3000001 /* Frameworks */,
 				A7000001 /* Sources */,
+				A3000001 /* Frameworks */,
 				A8000001 /* Resources */,
 			);
 			buildRules = (
@@ -137,6 +207,16 @@
 				A1000001 /* CompositionHelperApp.swift in Sources */,
 				A1000002 /* CompositionHelper.swift in Sources */,
 				A1000003 /* CompositionAnalyzer.swift in Sources */,
+				A1000004 /* ContentView.swift in Sources */,
+				A1000005 /* CompositionOverlays.swift in Sources */,
+				A1000006 /* CompositionType.swift in Sources */,
+				A1000007 /* AnalysisModels.swift in Sources */,
+				A1000008 /* CameraCompositionView.swift in Sources */,
+				A1000009 /* FrameAnalyzer.swift in Sources */,
+				A100000A /* CameraManager.swift in Sources */,
+				A100000B /* ShutterButton.swift in Sources */,
+				A100000C /* RecommendationChip.swift in Sources */,
+				A100000D /* ControlPanel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -272,7 +352,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = CompositionHelper/Info.plist;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -301,7 +381,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = CompositionHelper/Info.plist;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
