@@ -23,48 +23,62 @@ jobs:
     - name: Select Xcode
       run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
 
-    - name: Show Xcode version
-      run: xcodebuild -version
+    - name: Show Xcode & Swift version
+      run: |
+        xcodebuild -version
+        swift --version
 
-    - name: List schemes
-      run: xcodebuild -project "$PROJECT" -list
+    - name: List schemes and verify project
+      run: |
+        xcodebuild -project "$PROJECT" -list
+        echo "=== Source files ==="
+        find Sources -name "*.swift" | sort
+        echo "=== Info.plist ==="
+        ls -la Info.plist
 
     - name: Build Release .app
       run: |
+        set -euo pipefail
         BUILD_DIR=$RUNNER_TEMP/build
         xcodebuild build \
           -project "$PROJECT" \
           -scheme "$SCHEME" \
-          -destination 'generic/platform=iOS' \
+          -sdk iphoneos \
           -configuration Release \
           -derivedDataPath "$BUILD_DIR" \
           CODE_SIGNING_ALLOWED=NO \
           CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGN_IDENTITY="-" \
-          2>&1 | tee $RUNNER_TEMP/build.log | tail -50
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGN_ENTITLEMENTS="" \
+          COMPILER_INDEX_STORE_ENABLE=NO
         echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
 
-    - name: Find .app and create IPA
+    - name: Create IPA
       run: |
+        set -euo pipefail
         echo "=== Searching for .app ==="
-        find "$BUILD_DIR" -name "*.app" -type d 2>/dev/null
+        find "$BUILD_DIR" -name "*.app" -type d
 
         APP_PATH=$(find "$BUILD_DIR" -name "*.app" -type d | head -1)
         if [ -z "$APP_PATH" ]; then
           echo "❌ .app not found"
-          echo "=== Build directory contents ==="
-          find "$BUILD_DIR" -maxdepth 5 -type d
-          echo "=== Last 100 lines of build log ==="
-          tail -100 $RUNNER_TEMP/build.log
+          echo "=== Build directory structure ==="
+          find "$BUILD_DIR" -maxdepth 6 -type d
           exit 1
         fi
 
         echo "✅ Found: $APP_PATH"
+        echo "=== .app size ==="
+        du -sh "$APP_PATH"
+        echo "=== .app contents ==="
+        ls -la "$APP_PATH"
+
         mkdir -p $RUNNER_TEMP/Payload
         cp -r "$APP_PATH" $RUNNER_TEMP/Payload/
         cd $RUNNER_TEMP
         zip -r CompositionHelper.ipa Payload
-        echo "✅ IPA created: $(du -h CompositionHelper.ipa | cut -f1)"
+        echo "✅ IPA created"
+        ls -lh CompositionHelper.ipa
 
     - name: Upload IPA
       uses: actions/upload-artifact@v4
