@@ -24,7 +24,6 @@ jobs:
       run: |
         echo "=== Available Xcode versions ==="
         ls /Applications/ | grep Xcode
-        # Use the latest available Xcode
         XCODE_PATH=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
         echo "Using: $XCODE_PATH"
         sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
@@ -35,15 +34,17 @@ jobs:
       run: |
         echo "=== Schemes ==="
         xcodebuild -project "$PROJECT" -list
+        echo ""
         echo "=== Source files ==="
         find Sources -name "*.swift" | sort
-        echo "=== Build settings (key) ==="
-        xcodebuild -project "$PROJECT" -scheme "$SCHEME" -showBuildSettings 2>/dev/null | grep -E "INFOPLIST_FILE|PRODUCT_BUNDLE|SRCROOT|SOURCE_ROOT" || true
+        echo ""
+        echo "=== Key build settings ==="
+        xcodebuild -project "$PROJECT" -scheme "$SCHEME" -showBuildSettings 2>/dev/null | grep -E "INFOPLIST_FILE|PRODUCT_BUNDLE|SRCROOT|SOURCE_ROOT|SWIFT_VERSION" || true
 
     - name: Build
       run: |
-        set -eo pipefail
         BUILD_DIR=$RUNNER_TEMP/build
+        # Run xcodebuild and capture exit code, always show full output
         xcodebuild build \
           -project "$PROJECT" \
           -scheme "$SCHEME" \
@@ -55,7 +56,22 @@ jobs:
           CODE_SIGN_IDENTITY="" \
           CODE_SIGN_ENTITLEMENTS="" \
           COMPILER_INDEX_STORE_ENABLE=NO \
-          2>&1 | tee $RUNNER_TEMP/xcodebuild.log
+          > $RUNNER_TEMP/xcodebuild.log 2>&1 || BUILD_RESULT=$?
+
+        # Always print full log so it's visible in GitHub Actions
+        cat $RUNNER_TEMP/xcodebuild.log
+
+        if [ "${BUILD_RESULT:-0}" != "0" ]; then
+          echo ""
+          echo "=========================================="
+          echo "❌ BUILD FAILED (exit code: $BUILD_RESULT)"
+          echo "=========================================="
+          echo ""
+          echo "=== ERRORS ONLY ==="
+          grep -i "error:" $RUNNER_TEMP/xcodebuild.log || true
+          exit $BUILD_RESULT
+        fi
+
         echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
 
     - name: Upload build log on failure
@@ -69,19 +85,15 @@ jobs:
     - name: Create IPA
       run: |
         set -euo pipefail
-        echo "=== Searching for .app ==="
-        find "$BUILD_DIR" -name "*.app" -type d
-
         APP_PATH=$(find "$BUILD_DIR" -name "*.app" -type d | head -1)
         if [ -z "$APP_PATH" ]; then
           echo "❌ .app not found"
-          find "$BUILD_DIR" -maxdepth 6 -type d
+          find "$BUILD_DIR" -maxdepth 6 -type d 2>/dev/null || true
           exit 1
         fi
 
         echo "✅ Found: $APP_PATH"
         du -sh "$APP_PATH"
-        ls -la "$APP_PATH"
 
         mkdir -p $RUNNER_TEMP/Payload
         cp -r "$APP_PATH" $RUNNER_TEMP/Payload/
