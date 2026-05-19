@@ -74,7 +74,7 @@ class ImageAnalyzer {
                                 right = boundingBox.right.toFloat() / bitmap.width,
                                 bottom = boundingBox.bottom.toFloat() / bitmap.height
                             ),
-                            confidence = detectedObj.trackingId?.toFloat() ?: 0.8f,
+                            confidence = detectedObj.labels.maxOfOrNull { it.confidence } ?: 0.8f,
                             type = SubjectType.OBJECT
                         )
                     )
@@ -425,7 +425,11 @@ class ImageAnalyzer {
                 for (existing in filtered) {
                     if (subject.boundingBox.intersects(existing.boundingBox)) {
                         hasOverlap = true
-                        if (subject.confidence > existing.confidence) {
+                        val subjectArea = subject.boundingBox.width() * subject.boundingBox.height()
+                        val existingArea = existing.boundingBox.width() * existing.boundingBox.height()
+                        val shouldReplace = subject.confidence > existing.confidence ||
+                            (subject.confidence == existing.confidence && subjectArea > existingArea)
+                        if (shouldReplace) {
                             val index = filtered.indexOf(existing)
                             if (index != -1) {
                                 filtered[index] = subject

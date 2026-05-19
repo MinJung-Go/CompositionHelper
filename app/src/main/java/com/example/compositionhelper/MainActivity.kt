@@ -52,11 +52,16 @@ fun CompositionHelperNavigation() {
             Manifest.permission.READ_MEDIA_IMAGES
         )
     )
+    val hasCameraPermission = permissionsState.permissions
+        .firstOrNull { it.permission == Manifest.permission.CAMERA }
+        ?.status?.isGranted == true
 
     NavHost(navController = navController, startDestination = "camera") {
         // 实时相机模式（默认启动）
         composable("camera") {
             CameraCompositionScreen(
+                hasCameraPermission = hasCameraPermission,
+                onRequestCameraPermission = { permissionsState.launchMultiplePermissionRequest() },
                 onNavigateBack = {
                     if (navController.previousBackStackEntry != null) {
                         navController.popBackStack()

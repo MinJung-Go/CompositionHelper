@@ -61,8 +61,17 @@ class FrameAnalyzer(
 
         objectDetector.process(inputImage)
             .addOnSuccessListener { detectedObjects ->
-                val imageWidth = imageProxy.width
-                val imageHeight = imageProxy.height
+                val rotationDegrees = imageProxy.imageInfo.rotationDegrees
+                val imageWidth = if (rotationDegrees == 90 || rotationDegrees == 270) {
+                    imageProxy.height
+                } else {
+                    imageProxy.width
+                }
+                val imageHeight = if (rotationDegrees == 90 || rotationDegrees == 270) {
+                    imageProxy.width
+                } else {
+                    imageProxy.height
+                }
 
                 val subjects = detectedObjects.map { obj ->
                     DetectedSubject(

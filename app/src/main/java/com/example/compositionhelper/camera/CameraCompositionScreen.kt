@@ -29,6 +29,8 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun CameraCompositionScreen(
+    hasCameraPermission: Boolean,
+    onRequestCameraPermission: () -> Unit,
     onNavigateBack: () -> Unit,
     onOpenGallery: () -> Unit
 ) {
@@ -71,14 +73,25 @@ fun CameraCompositionScreen(
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
 
     // 初始化相机
-    LaunchedEffect(Unit) {
-        cameraManager.initialize()
-        cameraInitialized = true
+    LaunchedEffect(hasCameraPermission) {
+        if (!hasCameraPermission) {
+            onRequestCameraPermission()
+        }
+    }
+
+    // 初始化相机
+    LaunchedEffect(hasCameraPermission) {
+        if (hasCameraPermission) {
+            cameraManager.initialize()
+            cameraInitialized = true
+        } else {
+            cameraInitialized = false
+        }
     }
 
     // 绑定相机（响应 Smart 模式切换）
-    LaunchedEffect(cameraInitialized, isSmartMode, previewView) {
-        if (cameraInitialized && previewView != null) {
+    LaunchedEffect(cameraInitialized, isSmartMode, previewView, hasCameraPermission) {
+        if (hasCameraPermission && cameraInitialized && previewView != null) {
             cameraManager.bindPreview(
                 previewView = previewView!!,
                 enableAnalysis = isSmartMode,
@@ -244,6 +257,34 @@ fun CameraCompositionScreen(
                     onOpenGallery = onOpenGallery,
                     modifier = Modifier.align(Alignment.BottomCenter)
                 )
+            }
+        }
+        if (!hasCameraPermission) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.75f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.padding(24.dp)
+                ) {
+                    Text(
+                        text = "需要相机权限",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = Color.White
+                    )
+                    Text(
+                        text = "请授予 CAMERA 权限后再进入实时取景模式。",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.85f)
+                    )
+                    Button(onClick = onRequestCameraPermission) {
+                        Text("重新请求权限")
+                    }
+                }
             }
         }
     }
