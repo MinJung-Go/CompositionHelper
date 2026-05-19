@@ -113,26 +113,33 @@ fun CameraCompositionScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        // Layer 0: 相机预览
-        AndroidView(
-            factory = { ctx ->
-                PreviewView(ctx).apply {
-                    implementationMode = PreviewView.ImplementationMode.PERFORMANCE
-                    scaleType = PreviewView.ScaleType.FILL_CENTER
-                }.also { previewView = it }
-            },
-            modifier = Modifier.fillMaxSize()
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(3f / 4f)
+                .align(Alignment.Center)
+        ) {
+            // Layer 0: 相机预览
+            AndroidView(
+                factory = { ctx ->
+                    PreviewView(ctx).apply {
+                        implementationMode = PreviewView.ImplementationMode.PERFORMANCE
+                        scaleType = PreviewView.ScaleType.FILL_CENTER
+                    }.also { previewView = it }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
 
-        // Layer 1 + 3: 构图叠加层（引导线 + 主体追踪）
-        CameraCompositionOverlay(
-            compositionType = compositionType,
-            lineOpacity = lineOpacity,
-            lineColor = lineColor,
-            detectedSubjects = if (isSmartMode) detectedSubjects else emptyList(),
-            spiralOrientation = spiralOrientation,
-            modifier = Modifier.fillMaxSize()
-        )
+            // Layer 1 + 3: 构图叠加层（引导线 + 主体追踪）
+            CameraCompositionOverlay(
+                compositionType = compositionType,
+                lineOpacity = lineOpacity,
+                lineColor = lineColor,
+                detectedSubjects = if (isSmartMode) detectedSubjects else emptyList(),
+                spiralOrientation = spiralOrientation,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
 
         // 点击切换控制面板
         Box(

@@ -80,10 +80,9 @@ class CameraManager(
 
         try {
             provider.unbindAll()
-            val displayMetrics = context.resources.displayMetrics
             val rotation = previewView.display?.rotation ?: Surface.ROTATION_0
             val viewPort = ViewPort.Builder(
-                Rational(displayMetrics.widthPixels, displayMetrics.heightPixels),
+                Rational(3, 4),
                 rotation
             ).build()
             val useCaseGroup = UseCaseGroup.Builder()
