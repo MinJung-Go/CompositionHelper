@@ -2,6 +2,7 @@ package com.example.compositionhelper
 
 import android.Manifest
 import android.os.Bundle
+import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,7 +18,7 @@ import com.example.compositionhelper.camera.CameraCompositionScreen
 import com.example.compositionhelper.ui.theme.CompositionHelperTheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionStatus
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.google.accompanist.permissions.rememberPermissionState
 
 class MainActivity : ComponentActivity() {
 
@@ -46,23 +47,22 @@ class MainActivity : ComponentActivity() {
 fun CompositionHelperNavigation() {
     val navController = rememberNavController()
 
-    val permissionsState = rememberMultiplePermissionsState(
-        permissions = listOf(
-            Manifest.permission.CAMERA,
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.READ_MEDIA_IMAGES
-        )
-    )
-    val hasCameraPermission = permissionsState.permissions
-        .firstOrNull { it.permission == Manifest.permission.CAMERA }
-        ?.status == PermissionStatus.Granted
+    val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
+    val galleryPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        Manifest.permission.READ_MEDIA_IMAGES
+    } else {
+        Manifest.permission.READ_EXTERNAL_STORAGE
+    }
+    val galleryPermissionState = rememberPermissionState(galleryPermission)
+    val hasCameraPermission = cameraPermissionState.status == PermissionStatus.Granted
+    val hasGalleryPermission = galleryPermissionState.status == PermissionStatus.Granted
 
     NavHost(navController = navController, startDestination = "camera") {
         // 实时相机模式（默认启动）
         composable("camera") {
             CameraCompositionScreen(
                 hasCameraPermission = hasCameraPermission,
-                onRequestCameraPermission = { permissionsState.launchMultiplePermissionRequest() },
+                onRequestCameraPermission = { cameraPermissionState.launchPermissionRequest() },
                 onNavigateBack = {
                     if (navController.previousBackStackEntry != null) {
                         navController.popBackStack()
@@ -77,8 +77,8 @@ fun CompositionHelperNavigation() {
         // 相册分析模式
         composable("gallery") {
             CompositionHelperApp(
-                hasPermissions = permissionsState.allPermissionsGranted,
-                onRequestPermissions = { permissionsState.launchMultiplePermissionRequest() },
+                hasPermissions = hasGalleryPermission,
+                onRequestPermissions = { galleryPermissionState.launchPermissionRequest() },
                 onOpenCamera = { navController.navigate("camera") }
             )
         }

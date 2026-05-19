@@ -20,6 +20,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.clipToBounds
@@ -73,6 +74,8 @@ fun CameraCompositionScreen(
     // PreviewView 引用
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
     var captureAreaSize by remember { mutableStateOf(IntSize.Zero) }
+    var topControlsSize by remember { mutableStateOf(IntSize.Zero) }
+    var bottomControlsSize by remember { mutableStateOf(IntSize.Zero) }
 
     // 初始化相机
     LaunchedEffect(hasCameraPermission) {
@@ -105,8 +108,13 @@ fun CameraCompositionScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        val captureTopReserve = if (showControls) 96.dp else 24.dp
-        val captureBottomReserve = if (showControls) 292.dp else 24.dp
+        val density = LocalDensity.current
+        val captureTopReserve = with(density) {
+            if (showControls && topControlsSize.height > 0) topControlsSize.height.toDp() else 24.dp
+        }
+        val captureBottomReserve = with(density) {
+            if (showControls && bottomControlsSize.height > 0) bottomControlsSize.height.toDp() else 24.dp
+        }
         val captureHeight = (maxHeight - captureTopReserve - captureBottomReserve)
             .coerceAtLeast(1.dp)
 
@@ -163,7 +171,10 @@ fun CameraCompositionScreen(
         // 点击切换控制面板
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .height(captureHeight)
+                .offset(y = captureTopReserve)
+                .align(Alignment.TopCenter)
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onTap = { showControls = !showControls }
@@ -186,7 +197,8 @@ fun CameraCompositionScreen(
                         .background(Color.Black.copy(alpha = 0.4f))
                         .statusBarsPadding()
                         .padding(horizontal = 8.dp, vertical = 4.dp)
-                        .align(Alignment.TopCenter),
+                        .align(Alignment.TopCenter)
+                        .onSizeChanged { topControlsSize = it },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onNavigateBack) {
@@ -273,7 +285,7 @@ fun CameraCompositionScreen(
                     onCapture = {
                         cameraManager.capturePhoto(
                             onSaved = { uri ->
-                                Toast.makeText(context, "照片已保存", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "已保存到相册", Toast.LENGTH_SHORT).show()
                             },
                             onError = { e ->
                                 Toast.makeText(context, "拍照失败: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -281,7 +293,9 @@ fun CameraCompositionScreen(
                         )
                     },
                     onOpenGallery = onOpenGallery,
-                    modifier = Modifier.align(Alignment.BottomCenter)
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .onSizeChanged { bottomControlsSize = it }
                 )
             }
         }

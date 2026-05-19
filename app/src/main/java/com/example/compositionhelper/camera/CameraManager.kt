@@ -2,6 +2,10 @@ package com.example.compositionhelper.camera
 
 import android.content.Context
 import android.net.Uri
+import android.content.ContentValues
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.util.Log
 import android.util.Rational
 import android.view.Surface
@@ -11,7 +15,6 @@ import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.suspendCancellableCoroutine
-import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -112,18 +115,26 @@ class CameraManager(
             return
         }
 
-        val photoFile = File(
-            context.cacheDir,
-            "composition_${System.currentTimeMillis()}.jpg"
-        )
-        val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
+        val displayName = "composition_${System.currentTimeMillis()}.jpg"
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, displayName)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
+            }
+        }
+        val outputOptions = ImageCapture.OutputFileOptions.Builder(
+            context.contentResolver,
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+            contentValues
+        ).build()
 
         capture.takePicture(
             outputOptions,
             ContextCompat.getMainExecutor(context),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                    onSaved(Uri.fromFile(photoFile))
+                    onSaved(output.savedUri ?: MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
                 }
 
                 override fun onError(exception: ImageCaptureException) {

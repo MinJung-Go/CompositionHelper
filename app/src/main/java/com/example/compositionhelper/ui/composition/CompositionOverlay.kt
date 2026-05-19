@@ -24,31 +24,24 @@ fun ImageWithCompositionOverlay(
     modifier: Modifier = Modifier
 ) {
     val compositionBitmap = remember(bitmap, compositionType, lineOpacity, lineColor) {
-        drawCompositionOverlay(
+        val guideBitmap = drawCompositionOverlay(
             originalBitmap = bitmap,
             compositionType = compositionType,
             lineOpacity = lineOpacity,
             lineColor = lineColor
         )
+        Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888).also { combinedBitmap ->
+            val canvas = Canvas(combinedBitmap)
+            canvas.drawBitmap(bitmap, 0f, 0f, null)
+            canvas.drawBitmap(guideBitmap, 0f, 0f, null)
+        }
     }
 
-    android.graphics.Bitmap
-        .createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)?.let { overlayBitmap ->
-            val canvas = Canvas(overlayBitmap)
-            canvas.drawBitmap(bitmap, 0f, 0f, null)
-            canvas.drawBitmap(compositionBitmap, 0f, 0f, null)
-            Image(
-                bitmap = overlayBitmap.asImageBitmap(),
-                contentDescription = null,
-                modifier = modifier
-            )
-        } ?: run {
-            Image(
-                bitmap = bitmap.asImageBitmap(),
-                contentDescription = null,
-                modifier = modifier
-            )
-        }
+    Image(
+        bitmap = compositionBitmap.asImageBitmap(),
+        contentDescription = null,
+        modifier = modifier
+    )
 }
 
 // 绘制构图辅助线（委托给 CompositionDrawing）
