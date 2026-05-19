@@ -12,6 +12,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
+import kotlin.math.roundToInt
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -46,6 +47,7 @@ class CameraManager(
 
     fun bindPreview(
         previewView: PreviewView,
+        captureAspectRatio: Float,
         enableAnalysis: Boolean = false,
         analyzer: ImageAnalysis.Analyzer? = null
     ) {
@@ -81,8 +83,9 @@ class CameraManager(
         try {
             provider.unbindAll()
             val rotation = previewView.display?.rotation ?: Surface.ROTATION_0
+            val viewPortWidth = (captureAspectRatio * 10_000).roundToInt().coerceAtLeast(1)
             val viewPort = ViewPort.Builder(
-                Rational(3, 4),
+                Rational(viewPortWidth, 10_000),
                 rotation
             ).build()
             val useCaseGroup = UseCaseGroup.Builder()

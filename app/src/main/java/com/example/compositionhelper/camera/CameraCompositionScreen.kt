@@ -20,6 +20,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.compositionhelper.model.*
 import com.example.compositionhelper.overlay.CameraCompositionOverlay
@@ -89,16 +90,6 @@ fun CameraCompositionScreen(
         }
     }
 
-    // 绑定相机（响应 Smart 模式切换）
-    LaunchedEffect(cameraInitialized, isSmartMode, previewView, hasCameraPermission) {
-        if (hasCameraPermission && cameraInitialized && previewView != null) {
-            cameraManager.bindPreview(
-                previewView = previewView!!,
-                enableAnalysis = isSmartMode,
-                analyzer = if (isSmartMode) frameAnalyzer else null
-            )
-        }
-    }
 
     // 清理
     DisposableEffect(Unit) {
@@ -108,16 +99,35 @@ fun CameraCompositionScreen(
         }
     }
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
     ) {
+        val captureTopReserve = if (showControls) 96.dp else 24.dp
+        val captureBottomReserve = if (showControls) 292.dp else 24.dp
+        val captureHeight = (maxHeight - captureTopReserve - captureBottomReserve)
+            .coerceAtLeast(240.dp)
+        val captureAspectRatio = maxWidth.value / captureHeight.value
+
+        LaunchedEffect(cameraInitialized, isSmartMode, previewView, hasCameraPermission, captureAspectRatio) {
+            if (hasCameraPermission && cameraInitialized && previewView != null) {
+                cameraManager.bindPreview(
+                    previewView = previewView!!,
+                    captureAspectRatio = captureAspectRatio,
+                    enableAnalysis = isSmartMode,
+                    analyzer = if (isSmartMode) frameAnalyzer else null
+                )
+            }
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(3f / 4f)
-                .align(Alignment.Center)
+                .height(captureHeight)
+                .offset(y = captureTopReserve)
+                .align(Alignment.TopCenter)
+                .clipToBounds()
         ) {
             // Layer 0: 相机预览
             AndroidView(
