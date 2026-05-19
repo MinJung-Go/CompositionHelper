@@ -16,6 +16,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.compositionhelper.camera.CameraCompositionScreen
 import com.example.compositionhelper.ui.theme.CompositionHelperTheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 
 class MainActivity : ComponentActivity() {
@@ -54,7 +55,7 @@ fun CompositionHelperNavigation() {
     )
     val hasCameraPermission = permissionsState.permissions
         .firstOrNull { it.permission == Manifest.permission.CAMERA }
-        ?.status?.isGranted == true
+        ?.status == PermissionStatus.Granted
 
     NavHost(navController = navController, startDestination = "camera") {
         // 实时相机模式（默认启动）
