@@ -12,7 +12,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
-import kotlin.math.roundToInt
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -47,20 +46,24 @@ class CameraManager(
 
     fun bindPreview(
         previewView: PreviewView,
-        captureAspectRatio: Float,
+        captureWidth: Int,
+        captureHeight: Int,
         enableAnalysis: Boolean = false,
         analyzer: ImageAnalysis.Analyzer? = null
     ) {
         val provider = cameraProvider ?: return
         val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
+        val rotation = previewView.display?.rotation ?: Surface.ROTATION_0
+
         preview = Preview.Builder()
-            .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+            .setTargetRotation(rotation)
             .build()
             .also { it.setSurfaceProvider(previewView.surfaceProvider) }
 
         imageCapture = ImageCapture.Builder()
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+            .setTargetRotation(rotation)
             .build()
 
         val useCases = mutableListOf<UseCase>(preview!!, imageCapture!!)
@@ -68,6 +71,7 @@ class CameraManager(
         if (enableAnalysis && analyzer != null) {
             imageAnalysis = ImageAnalysis.Builder()
                 .setTargetResolution(android.util.Size(640, 480))
+                .setTargetRotation(rotation)
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
                 .build()
@@ -82,12 +86,12 @@ class CameraManager(
 
         try {
             provider.unbindAll()
-            val rotation = previewView.display?.rotation ?: Surface.ROTATION_0
-            val viewPortWidth = (captureAspectRatio * 10_000).roundToInt().coerceAtLeast(1)
             val viewPort = ViewPort.Builder(
-                Rational(viewPortWidth, 10_000),
+                Rational(captureWidth.coerceAtLeast(1), captureHeight.coerceAtLeast(1)),
                 rotation
-            ).build()
+            )
+                .setScaleType(ViewPort.FILL_CENTER)
+                .build()
             val useCaseGroup = UseCaseGroup.Builder()
                 .apply { useCases.forEach { addUseCase(it) } }
                 .setViewPort(viewPort)

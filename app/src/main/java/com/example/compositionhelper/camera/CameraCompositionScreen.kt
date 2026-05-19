@@ -17,8 +17,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.viewinterop.AndroidView
@@ -26,7 +28,6 @@ import com.example.compositionhelper.model.*
 import com.example.compositionhelper.overlay.CameraCompositionOverlay
 import com.example.compositionhelper.ui.components.CameraBottomBar
 import com.example.compositionhelper.ui.components.RecommendationChip
-import kotlinx.coroutines.launch
 
 @Composable
 fun CameraCompositionScreen(
@@ -37,7 +38,6 @@ fun CameraCompositionScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = rememberCoroutineScope()
 
     // 构图状态
     var compositionType by remember { mutableStateOf(CompositionType.RULE_OF_THIRDS) }
@@ -72,6 +72,7 @@ fun CameraCompositionScreen(
 
     // PreviewView 引用
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
+    var captureAreaSize by remember { mutableStateOf(IntSize.Zero) }
 
     // 初始化相机
     LaunchedEffect(hasCameraPermission) {
@@ -107,14 +108,21 @@ fun CameraCompositionScreen(
         val captureTopReserve = if (showControls) 96.dp else 24.dp
         val captureBottomReserve = if (showControls) 292.dp else 24.dp
         val captureHeight = (maxHeight - captureTopReserve - captureBottomReserve)
-            .coerceAtLeast(240.dp)
-        val captureAspectRatio = maxWidth.value / captureHeight.value
+            .coerceAtLeast(1.dp)
 
-        LaunchedEffect(cameraInitialized, isSmartMode, previewView, hasCameraPermission, captureAspectRatio) {
-            if (hasCameraPermission && cameraInitialized && previewView != null) {
+        LaunchedEffect(cameraInitialized, isSmartMode, previewView, hasCameraPermission, captureAreaSize) {
+            val measuredPreviewView = previewView
+            if (
+                hasCameraPermission &&
+                cameraInitialized &&
+                measuredPreviewView != null &&
+                captureAreaSize.width > 0 &&
+                captureAreaSize.height > 0
+            ) {
                 cameraManager.bindPreview(
-                    previewView = previewView!!,
-                    captureAspectRatio = captureAspectRatio,
+                    previewView = measuredPreviewView,
+                    captureWidth = captureAreaSize.width,
+                    captureHeight = captureAreaSize.height,
                     enableAnalysis = isSmartMode,
                     analyzer = if (isSmartMode) frameAnalyzer else null
                 )
@@ -127,6 +135,7 @@ fun CameraCompositionScreen(
                 .height(captureHeight)
                 .offset(y = captureTopReserve)
                 .align(Alignment.TopCenter)
+                .onSizeChanged { captureAreaSize = it }
                 .clipToBounds()
         ) {
             // Layer 0: 相机预览
