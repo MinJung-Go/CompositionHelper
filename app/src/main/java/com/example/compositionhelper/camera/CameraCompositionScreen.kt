@@ -115,8 +115,21 @@ fun CameraCompositionScreen(
         val captureBottomReserve = with(density) {
             if (showControls && bottomControlsSize.height > 0) bottomControlsSize.height.toDp() else 24.dp
         }
-        val captureHeight = (maxHeight - captureTopReserve - captureBottomReserve)
+        val availableCaptureHeight = (maxHeight - captureTopReserve - captureBottomReserve)
             .coerceAtLeast(1.dp)
+        val targetCaptureAspectRatio = 1f
+        val fullWidthHeight = maxWidth / targetCaptureAspectRatio
+        val captureWidth = if (fullWidthHeight <= availableCaptureHeight) {
+            maxWidth
+        } else {
+            availableCaptureHeight * targetCaptureAspectRatio
+        }
+        val captureHeight = if (fullWidthHeight <= availableCaptureHeight) {
+            fullWidthHeight
+        } else {
+            availableCaptureHeight
+        }
+        val captureOffsetY = captureTopReserve + (availableCaptureHeight - captureHeight) / 2
 
         LaunchedEffect(cameraInitialized, isSmartMode, previewView, hasCameraPermission, captureAreaSize) {
             val measuredPreviewView = previewView
@@ -139,9 +152,9 @@ fun CameraCompositionScreen(
 
         Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .width(captureWidth)
                 .height(captureHeight)
-                .offset(y = captureTopReserve)
+                .offset(y = captureOffsetY)
                 .align(Alignment.TopCenter)
                 .onSizeChanged { captureAreaSize = it }
                 .clipToBounds()
@@ -171,9 +184,9 @@ fun CameraCompositionScreen(
         // 点击切换控制面板
         Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .width(captureWidth)
                 .height(captureHeight)
-                .offset(y = captureTopReserve)
+                .offset(y = captureOffsetY)
                 .align(Alignment.TopCenter)
                 .pointerInput(Unit) {
                     detectTapGestures(
