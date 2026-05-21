@@ -13,7 +13,7 @@ jobs:
     
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     
     - name: Show Xcode version
       run: xcodebuild -version
@@ -21,21 +21,15 @@ jobs:
     - name: Show Swift version
       run: swift --version
     
-    - name: Build Sources
+    - name: Build Simulator
       run: |
-        # Build the Swift files to check for syntax errors
-        cd Sources
-        swiftc -typecheck Views/CompositionHelper.swift Analyzers/CompositionAnalyzer.swift CompositionHelperApp.swift \
-          -sdk $(xcrun --show-sdk-path --sdk iphonesimulator) \
-          -target arm64-apple-ios15.0-simulator \
-          -import-objc-header /dev/null \
-          -framework SwiftUI \
-          -framework Vision \
-          -framework CoreImage \
-          -framework AVFoundation \
-          -framework UIKit \
-          -framework Foundation \
-          2>&1 || true
+        xcodebuild build \
+          -project CompositionHelper.xcodeproj \
+          -scheme CompositionHelper \
+          -sdk iphonesimulator \
+          -destination "generic/platform=iOS Simulator" \
+          CODE_SIGNING_ALLOWED=NO \
+          COMPILER_INDEX_STORE_ENABLE=NO
     
     - name: Validate Info.plist
       run: |
@@ -48,7 +42,7 @@ jobs:
     
     - name: Upload Build Artifacts
       if: success()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: build-artifacts
         path: |
@@ -62,7 +56,7 @@ jobs:
     
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     
     - name: Install SwiftLint
       run: brew install swiftlint
@@ -78,7 +72,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Check for TODO/FIXME comments
         run: |

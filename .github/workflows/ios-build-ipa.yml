@@ -18,7 +18,7 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Setup Xcode
       run: |
@@ -76,7 +76,7 @@ jobs:
 
     - name: Upload build log on failure
       if: failure()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: xcodebuild-log
         path: ${{ runner.temp }}/xcodebuild.log
@@ -103,7 +103,7 @@ jobs:
         ls -lh CompositionHelper.ipa
 
     - name: Upload IPA
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: CompositionHelper-unsigned
         path: ${{ runner.temp }}/CompositionHelper.ipa

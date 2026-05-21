@@ -109,3 +109,7 @@ iOSInjectionProject/
 # Distribution
 *.dmg
 *.zip
+# Android local artifacts from cross-branch work
+.android-sdk/
+.gradle/
+local.properties

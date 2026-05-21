@@ -73,3 +73,15 @@ enum CompositionCategory: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 }
+
+// MARK: - 构图推荐画幅比例
+extension CompositionType {
+    func captureAspectRatio(isPortrait: Bool) -> CGFloat {
+        switch self {
+        case .goldenSpiral, .goldenTriangle:
+            return isPortrait ? 8.0 / 13.0 : 13.0 / 8.0
+        default:
+            return 1.0
+        }
+    }
+}

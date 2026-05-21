@@ -10,6 +10,7 @@ class CameraManager: NSObject, ObservableObject {
 
     let session = AVCaptureSession()
     private let sessionQueue = DispatchQueue(label: "camera.session.queue")
+    private var pendingCaptureAspectRatio: CGFloat = 1.0
     private var videoDeviceInput: AVCaptureDeviceInput?
     private let photoOutput = AVCapturePhotoOutput()
     let videoDataOutput = AVCaptureVideoDataOutput()
@@ -140,7 +141,8 @@ class CameraManager: NSObject, ObservableObject {
     }
 
     // MARK: - 拍照
-    func capturePhoto() {
+    func capturePhoto(aspectRatio: CGFloat = 1.0) {
+        pendingCaptureAspectRatio = max(0.1, aspectRatio)
         let settings = AVCapturePhotoSettings()
         photoOutput.capturePhoto(with: settings, delegate: self)
     }
@@ -152,25 +154,32 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         guard let data = photo.fileDataRepresentation(),
               let image = UIImage(data: data) else { return }
 
-        let cropped = Self.cropToPreviewAspect(image)
+        let targetAspectRatio = pendingCaptureAspectRatio
+        let cropped = Self.cropToAspect(image, aspectRatio: targetAspectRatio)
         DispatchQueue.main.async {
             self.capturedPhoto = cropped
         }
     }
 
-    /// 将拍摄的照片裁剪为与 resizeAspectFill 预览一致的可见区域
-    static func cropToPreviewAspect(_ image: UIImage) -> UIImage {
-        let screenSize = UIScreen.main.bounds.size
+    /// 将拍摄的照片裁剪为与当前有效取景框一致的画幅比例。
+    static func cropToAspect(_ image: UIImage, aspectRatio: CGFloat) -> UIImage {
         let imgSize = image.size
-        // resizeAspectFill: 缩放至短边匹配屏幕，长边裁剪
-        let scale = max(screenSize.width / imgSize.width, screenSize.height / imgSize.height)
-        let visibleW = screenSize.width / scale
-        let visibleH = screenSize.height / scale
+        guard imgSize.width > 0, imgSize.height > 0, aspectRatio > 0 else { return image }
+
+        let imageAspectRatio = imgSize.width / imgSize.height
+        let cropSize: CGSize
+        if imageAspectRatio > aspectRatio {
+            let cropHeight = imgSize.height
+            cropSize = CGSize(width: cropHeight * aspectRatio, height: cropHeight)
+        } else {
+            let cropWidth = imgSize.width
+            cropSize = CGSize(width: cropWidth, height: cropWidth / aspectRatio)
+        }
+
         let cropOrigin = CGPoint(
-            x: (imgSize.width - visibleW) / 2,
-            y: (imgSize.height - visibleH) / 2
+            x: (imgSize.width - cropSize.width) / 2,
+            y: (imgSize.height - cropSize.height) / 2
         )
-        let cropSize = CGSize(width: visibleW, height: visibleH)
         let renderer = UIGraphicsImageRenderer(size: cropSize)
         return renderer.image { _ in
             image.draw(at: CGPoint(x: -cropOrigin.x, y: -cropOrigin.y))

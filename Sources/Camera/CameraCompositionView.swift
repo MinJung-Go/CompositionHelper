@@ -18,26 +18,29 @@ struct CameraCompositionView: View {
 
     @Environment(\.dismiss) private var dismiss
 
+    private var activeComposition: CompositionType {
+        isSmartMode ? (frameAnalyzer.analysisResult?.recommendedType ?? selectedComposition) : selectedComposition
+    }
+
+    private var currentCaptureAspectRatio: CGFloat {
+        activeComposition.captureAspectRatio(isPortrait: true)
+    }
+
     var body: some View {
         ZStack {
-            // 全屏相机预览
-            CameraPreviewView(session: cameraManager.session)
-                .ignoresSafeArea()
+            Color.black.ignoresSafeArea()
 
-            // 构图辅助线叠加
-            overlayView
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
+            GeometryReader { geometry in
+                let activeType = activeComposition
+                let frame = captureFrame(in: geometry.size, for: activeType)
 
-            // 主体追踪框
-            if isSmartMode {
-                SubjectTrackingOverlay(
-                    subjects: frameAnalyzer.detectedSubjects,
-                    compositionType: frameAnalyzer.analysisResult?.recommendedType ?? selectedComposition
-                )
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
+                captureSurface(activeType: activeType)
+                    .frame(width: frame.width, height: frame.height)
+                    .clipShape(Rectangle())
+                    .position(x: frame.midX, y: frame.midY)
             }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
 
             // UI 层
             VStack {
@@ -55,6 +58,7 @@ struct CameraCompositionView: View {
             }
         }
         .statusBarHidden(true)
+        .contentShape(Rectangle())
         .onTapGesture {
             withAnimation(.easeInOut(duration: 0.2)) {
                 showControls.toggle()
@@ -83,16 +87,49 @@ struct CameraCompositionView: View {
         }
     }
 
-    // MARK: - 构图叠加
-    private var overlayView: some View {
-        let activeType = isSmartMode
-            ? (frameAnalyzer.analysisResult?.recommendedType ?? selectedComposition)
-            : selectedComposition
-        return CompositionOverlayView(
-            compositionType: activeType,
-            opacity: lineOpacity,
-            color: lineColor,
-            spiralOrientation: spiralOrientation
+    // MARK: - 有效取景框
+    @ViewBuilder
+    private func captureSurface(activeType: CompositionType) -> some View {
+        ZStack {
+            CameraPreviewView(session: cameraManager.session)
+
+            CompositionOverlayView(
+                compositionType: activeType,
+                opacity: lineOpacity,
+                color: lineColor,
+                spiralOrientation: spiralOrientation
+            )
+            .allowsHitTesting(false)
+
+            if isSmartMode {
+                SubjectTrackingOverlay(
+                    subjects: frameAnalyzer.detectedSubjects,
+                    compositionType: frameAnalyzer.analysisResult?.recommendedType ?? selectedComposition
+                )
+                .allowsHitTesting(false)
+            }
+        }
+    }
+
+    private func captureFrame(in size: CGSize, for composition: CompositionType) -> CGRect {
+        let topReserve: CGFloat = showControls ? 88 : 24
+        let bottomReserve: CGFloat = showControls ? 260 : 24
+        let availableHeight = max(1, size.height - topReserve - bottomReserve)
+        let aspectRatio = composition.captureAspectRatio(isPortrait: size.height >= size.width)
+        let fullWidthHeight = size.width / aspectRatio
+
+        let frameSize: CGSize
+        if fullWidthHeight <= availableHeight {
+            frameSize = CGSize(width: size.width, height: fullWidthHeight)
+        } else {
+            frameSize = CGSize(width: availableHeight * aspectRatio, height: availableHeight)
+        }
+
+        return CGRect(
+            x: (size.width - frameSize.width) / 2,
+            y: topReserve + (availableHeight - frameSize.height) / 2,
+            width: frameSize.width,
+            height: frameSize.height
         )
     }
 
@@ -181,7 +218,7 @@ struct CameraCompositionView: View {
                 }
 
                 ShutterButton {
-                    cameraManager.capturePhoto()
+                    cameraManager.capturePhoto(aspectRatio: currentCaptureAspectRatio)
                 }
 
                 Button {
