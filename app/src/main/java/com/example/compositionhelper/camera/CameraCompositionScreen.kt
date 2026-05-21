@@ -117,7 +117,9 @@ fun CameraCompositionScreen(
         }
         val availableCaptureHeight = (maxHeight - captureTopReserve - captureBottomReserve)
             .coerceAtLeast(1.dp)
-        val targetCaptureAspectRatio = 1f
+        val targetCaptureAspectRatio = compositionType.captureAspectRatio(
+            isPortrait = maxHeight >= maxWidth
+        )
         val fullWidthHeight = maxWidth / targetCaptureAspectRatio
         val captureWidth = if (fullWidthHeight <= availableCaptureHeight) {
             maxWidth
@@ -131,7 +133,14 @@ fun CameraCompositionScreen(
         }
         val captureOffsetY = captureTopReserve + (availableCaptureHeight - captureHeight) / 2
 
-        LaunchedEffect(cameraInitialized, isSmartMode, previewView, hasCameraPermission, captureAreaSize) {
+        LaunchedEffect(
+            cameraInitialized,
+            isSmartMode,
+            previewView,
+            hasCameraPermission,
+            captureAreaSize,
+            targetCaptureAspectRatio
+        ) {
             val measuredPreviewView = previewView
             if (
                 hasCameraPermission &&
@@ -340,5 +349,14 @@ fun CameraCompositionScreen(
                 }
             }
         }
+    }
+}
+
+private fun CompositionType.captureAspectRatio(isPortrait: Boolean): Float {
+    return when (this) {
+        CompositionType.GOLDEN_SPIRAL, CompositionType.GOLDEN_TRIANGLE -> {
+            if (isPortrait) 8f / 13f else 13f / 8f
+        }
+        else -> 1f
     }
 }

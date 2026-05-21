@@ -15,9 +15,6 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Path as ComposePath
 import com.example.compositionhelper.model.CompositionType
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
 
 // ============================================================
 // 绘制路径命令
@@ -290,18 +287,22 @@ private fun drawSCurve(r: CompositionRenderer, w: Float, h: Float) {
     ))
 }
 
-// 黄金螺旋 — Fibonacci quarter-circle arcs fitted to the visible frame.
+// 黄金螺旋 — Fibonacci quarter-circle arcs in a true golden rectangle.
 // orientation: 0=↘  1=↙  2=↗  3=↖
 private fun drawGoldenSpiral(r: CompositionRenderer, w: Float, h: Float, orientation: Int = 0) {
     val portrait = h > w
     val totalW = if (portrait) 8f else 13f
     val totalH = if (portrait) 13f else 8f
+    val scale = (w / totalW).coerceAtMost(h / totalH)
+    val offsetX = (w - totalW * scale) / 2f
+    val offsetY = (h - totalH * scale) / 2f
+
     val flipH = orientation == 1 || orientation == 3
     val flipV = orientation == 2 || orientation == 3
 
-    // Arc definitions are centerX, centerY, radius, startAngle. Each 90-degree
-    // segment is sampled inside the Fibonacci rectangle and then mapped to the
-    // actual preview bounds, so the overlay never draws an off-frame outer circle.
+    // Each entry is centerX, centerY, radius, startAngle in Fibonacci grid units.
+    // The arc bounding boxes can extend outside the rectangle, but the rendered
+    // quarter-circle segment lies exactly along the matching square boundaries.
     val arcs = if (portrait) arrayOf(
         floatArrayOf(0f, 8f, 8f, 270f),
         floatArrayOf(3f, 8f, 5f, 0f),
@@ -318,38 +319,26 @@ private fun drawGoldenSpiral(r: CompositionRenderer, w: Float, h: Float, orienta
         floatArrayOf(9f, 6f, 1f, 270f)
     )
 
-    val commands = mutableListOf<PathCommand>()
-    var isFirstPoint = true
-
     for (arc in arcs) {
-        val centerX = arc[0]
-        val centerY = arc[1]
+        var centerX = arc[0]
+        var centerY = arc[1]
+        var startAngle = arc[3]
         val radius = arc[2]
-        val startAngle = arc[3]
 
-        for (step in 0..18) {
-            if (!isFirstPoint && step == 0) continue
-
-            val angle = (startAngle + step * 90f / 18f) * PI.toFloat() / 180f
-            var x = centerX + radius * cos(angle)
-            var y = centerY + radius * sin(angle)
-
-            if (flipH) x = totalW - x
-            if (flipV) y = totalH - y
-
-            val px = (x / totalW).coerceIn(0f, 1f) * w
-            val py = (y / totalH).coerceIn(0f, 1f) * h
-
-            if (isFirstPoint) {
-                commands.add(PathCommand.MoveTo(px, py))
-                isFirstPoint = false
-            } else {
-                commands.add(PathCommand.LineTo(px, py))
-            }
+        if (flipH) {
+            centerX = totalW - centerX
+            startAngle = (90f - startAngle + 360f) % 360f
         }
-    }
+        if (flipV) {
+            centerY = totalH - centerY
+            startAngle = (270f - startAngle + 360f) % 360f
+        }
 
-    r.drawPath(commands)
+        val cx = offsetX + centerX * scale
+        val cy = offsetY + centerY * scale
+        val sr = radius * scale
+        r.drawArc(cx - sr, cy - sr, cx + sr, cy + sr, startAngle, 90f)
+    }
 }
 
 // 黄金三角 — 主对角线 + 两条垂线，覆盖整幅画面
