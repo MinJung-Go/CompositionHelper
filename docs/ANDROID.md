@@ -50,6 +50,26 @@ git pull origin master
 2. **开启 USB 调试**: 设置 > 开发者选项 > USB 调试
 3. 连接设备，授权 USB 调试，在 Android Studio 中选择设备运行
 
+### 命令行查看
+
+连接一台 Android 设备或启动带硬件加速的模拟器后，可以直接安装并打开应用：
+
+```bash
+./view-android.sh --camera
+```
+
+在没有稳定相机设备的模拟器上，优先打开相册分析界面：
+
+```bash
+./view-android.sh --gallery
+```
+
+需要保存当前屏幕截图时：
+
+```bash
+./view-android.sh --gallery --screenshot /tmp/compositionhelper.png --wait 30
+```
+
 ---
 
 ## 技术栈

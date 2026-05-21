@@ -48,6 +48,8 @@ cd CompositionHelper
 
 **真机**: 开启 USB 调试 > 连接设备 > Run
 
+命令行查看：连接设备或启动模拟器后运行 `./view-android.sh --gallery`。
+
 ---
 
 ## 使用指南

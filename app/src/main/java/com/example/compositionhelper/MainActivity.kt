@@ -35,7 +35,10 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    CompositionHelperNavigation()
+                    val initialDestination = intent.getStringExtra("startDestination")
+                        .takeIf { it == "gallery" || it == "camera" }
+                        ?: "camera"
+                    CompositionHelperNavigation(initialDestination = initialDestination)
                 }
             }
         }
@@ -44,7 +47,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun CompositionHelperNavigation() {
+fun CompositionHelperNavigation(initialDestination: String = "camera") {
     val navController = rememberNavController()
 
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
@@ -57,7 +60,7 @@ fun CompositionHelperNavigation() {
     val hasCameraPermission = cameraPermissionState.status == PermissionStatus.Granted
     val hasGalleryPermission = galleryPermissionState.status == PermissionStatus.Granted
 
-    NavHost(navController = navController, startDestination = "camera") {
+    NavHost(navController = navController, startDestination = initialDestination) {
         // 实时相机模式（默认启动）
         composable("camera") {
             CameraCompositionScreen(

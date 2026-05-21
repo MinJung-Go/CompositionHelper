@@ -69,3 +69,6 @@ FINAL_SUMMARY.md
 
 # Nested git repositories
 CompositionHelper/
+
+# Project-local Android SDK
+.android-sdk/
