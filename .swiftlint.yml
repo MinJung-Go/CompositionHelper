@@ -1,0 +1,9 @@
+disabled_rules:
+  - cyclomatic_complexity
+  - file_length
+  - function_body_length
+  - line_length
+  - type_body_length
+
+included:
+  - Sources

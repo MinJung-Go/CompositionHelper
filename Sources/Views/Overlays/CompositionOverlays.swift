@@ -91,10 +91,10 @@ struct CenterComposition: View {
             }
             .stroke(color.opacity(opacity), lineWidth: 2)
 
-            let d = min(size.width, size.height) * 0.14
+            let diameter = min(size.width, size.height) * 0.14
             Circle()
                 .stroke(color.opacity(opacity), lineWidth: 2)
-                .frame(width: d, height: d)
+                .frame(width: diameter, height: diameter)
         }
     }
 }
@@ -174,6 +174,13 @@ struct SCurvePath: View {
 // 横屏：13×8 景观格网；竖屏：8×13 格网（顺时针旋转90°）
 // orientation: 0=↘  1=↙  2=↗  3=↖
 struct GoldenSpiral: View {
+    private struct SpiralArc {
+        let centerX: CGFloat
+        let centerY: CGFloat
+        let radius: CGFloat
+        let startDegrees: Double
+    }
+
     let size: CGSize
     let opacity: Double
     let color: Color
@@ -190,45 +197,46 @@ struct GoldenSpiral: View {
         let flipH = orientation == 1 || orientation == 3
         let flipV = orientation == 2 || orientation == 3
 
-        // Base arcs: cx, cy, radius, startDeg
+        // Base arcs: centerX, centerY, radius, startDegrees
         // Portrait (8×13): landscape arcs rotated 90° CW
         // clockwise: false in SwiftUI = CW on screen = angle-increasing direction
-        let baseArcs: [(cx: CGFloat, cy: CGFloat, rad: CGFloat, startDeg: Double)] = portrait ? [
-            (0,  8, 8, 270),
-            (3,  8, 5,   0),
-            (3, 10, 3,  90),
-            (2, 10, 2, 180),
-            (2,  9, 1, 270),
-            (2,  9, 1,   0)
+        let baseArcs: [SpiralArc] = portrait ? [
+            SpiralArc(centerX: 0, centerY: 8, radius: 8, startDegrees: 270),
+            SpiralArc(centerX: 3, centerY: 8, radius: 5, startDegrees: 0),
+            SpiralArc(centerX: 3, centerY: 10, radius: 3, startDegrees: 90),
+            SpiralArc(centerX: 2, centerY: 10, radius: 2, startDegrees: 180),
+            SpiralArc(centerX: 2, centerY: 9, radius: 1, startDegrees: 270),
+            SpiralArc(centerX: 2, centerY: 9, radius: 1, startDegrees: 0)
         ] : [
-            (8,  8, 8, 180),
-            (8,  5, 5, 270),
-            (10, 5, 3,   0),
-            (10, 6, 2,  90),
-            (9,  6, 1, 180),
-            (9,  6, 1, 270)
+            SpiralArc(centerX: 8, centerY: 8, radius: 8, startDegrees: 180),
+            SpiralArc(centerX: 8, centerY: 5, radius: 5, startDegrees: 270),
+            SpiralArc(centerX: 10, centerY: 5, radius: 3, startDegrees: 0),
+            SpiralArc(centerX: 10, centerY: 6, radius: 2, startDegrees: 90),
+            SpiralArc(centerX: 9, centerY: 6, radius: 1, startDegrees: 180),
+            SpiralArc(centerX: 9, centerY: 6, radius: 1, startDegrees: 270)
         ]
 
         Path { path in
             for (index, arc) in baseArcs.enumerated() {
-                var acx = arc.cx, acy = arc.cy
-                var sDeg = arc.startDeg
+                var arcCenterX = arc.centerX
+                var arcCenterY = arc.centerY
+                var startDegrees = arc.startDegrees
                 if flipH {
-                    acx = totalW - acx
-                    sDeg = fmod(90 - sDeg + 360, 360)
+                    arcCenterX = totalW - arcCenterX
+                    startDegrees = fmod(90 - startDegrees + 360, 360)
                 }
                 if flipV {
-                    acy = totalH - acy
-                    sDeg = fmod(270 - sDeg + 360, 360)
+                    arcCenterY = totalH - arcCenterY
+                    startDegrees = fmod(270 - startDegrees + 360, 360)
                 }
-                let eDeg = sDeg + 90
+                let endDegrees = startDegrees + 90
 
-                let centerX = acx * scale + offX
-                let centerY = acy * scale + offY
-                let radius = arc.rad * scale
+                let centerX = arcCenterX * scale + offX
+                let centerY = arcCenterY * scale + offY
+                let radius = arc.radius * scale
 
                 if index == 0 {
-                    let startRad = Angle.degrees(sDeg).radians
+                    let startRad = Angle.degrees(startDegrees).radians
                     path.move(to: CGPoint(
                         x: centerX + radius * cos(startRad),
                         y: centerY + radius * sin(startRad)
@@ -238,8 +246,8 @@ struct GoldenSpiral: View {
                 path.addArc(
                     center: CGPoint(x: centerX, y: centerY),
                     radius: radius,
-                    startAngle: .degrees(sDeg),
-                    endAngle: .degrees(eDeg),
+                    startAngle: .degrees(startDegrees),
+                    endAngle: .degrees(endDegrees),
                     clockwise: false
                 )
             }
@@ -255,27 +263,28 @@ struct GoldenTriangle: View {
     let color: Color
 
     var body: some View {
-        let w = size.width, h = size.height
+        let width = size.width
+        let height = size.height
 
         Path { path in
             // 主对角线 (0,0) → (w,h)
             path.move(to: .zero)
-            path.addLine(to: CGPoint(x: w, y: h))
+            path.addLine(to: CGPoint(x: width, y: height))
 
             // 从 (w,0) 作垂线（斜率 -w/h），延伸至对边
-            path.move(to: CGPoint(x: w, y: 0))
-            if h > w {
-                path.addLine(to: CGPoint(x: 0, y: w * w / h))
+            path.move(to: CGPoint(x: width, y: 0))
+            if height > width {
+                path.addLine(to: CGPoint(x: 0, y: width * width / height))
             } else {
-                path.addLine(to: CGPoint(x: (w * w - h * h) / w, y: h))
+                path.addLine(to: CGPoint(x: (width * width - height * height) / width, y: height))
             }
 
             // 从 (0,h) 作垂线（斜率 -w/h），延伸至对边
-            path.move(to: CGPoint(x: 0, y: h))
-            if h > w {
-                path.addLine(to: CGPoint(x: w, y: (h * h - w * w) / h))
+            path.move(to: CGPoint(x: 0, y: height))
+            if height > width {
+                path.addLine(to: CGPoint(x: width, y: (height * height - width * width) / height))
             } else {
-                path.addLine(to: CGPoint(x: h * h / w, y: 0))
+                path.addLine(to: CGPoint(x: height * height / width, y: 0))
             }
         }
         .stroke(color.opacity(opacity), lineWidth: 2)
