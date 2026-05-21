@@ -311,13 +311,13 @@ struct SymmetryGrid: View {
             }
             .stroke(color.opacity(opacity), lineWidth: 3)
 
-            let cd = min(size.width, size.height) * 0.03
+            let circleDiameter = min(size.width, size.height) * 0.03
             ForEach(0..<4, id: \.self) { idx in
                 let posX: CGFloat = (idx % 2 == 0) ? size.width * 0.25 : size.width * 0.75
                 let posY: CGFloat = (idx < 2) ? size.height * 0.25 : size.height * 0.75
                 Circle()
                     .stroke(color.opacity(opacity), lineWidth: 2)
-                    .frame(width: cd, height: cd)
+                    .frame(width: circleDiameter, height: circleDiameter)
                     .position(x: posX, y: posY)
             }
         }
@@ -374,15 +374,15 @@ struct PatternGrid: View {
             Path { path in
                 let cellWidth = size.width / 3
                 let cellHeight = size.height / 3
-                let ch = min(cellWidth, cellHeight) * 0.06
+                let crosshairLength = min(cellWidth, cellHeight) * 0.06
                 for row in 0..<3 {
                     for col in 0..<3 {
                         let centerX = CGFloat(col) * cellWidth + cellWidth * 0.5
                         let centerY = CGFloat(row) * cellHeight + cellHeight * 0.5
-                        path.move(to: CGPoint(x: centerX - ch, y: centerY))
-                        path.addLine(to: CGPoint(x: centerX + ch, y: centerY))
-                        path.move(to: CGPoint(x: centerX, y: centerY - ch))
-                        path.addLine(to: CGPoint(x: centerX, y: centerY + ch))
+                        path.move(to: CGPoint(x: centerX - crosshairLength, y: centerY))
+                        path.addLine(to: CGPoint(x: centerX + crosshairLength, y: centerY))
+                        path.move(to: CGPoint(x: centerX, y: centerY - crosshairLength))
+                        path.addLine(to: CGPoint(x: centerX, y: centerY + crosshairLength))
                     }
                 }
             }
@@ -411,10 +411,10 @@ struct TunnelView: View {
             }
             .stroke(color.opacity(opacity), lineWidth: 2)
 
-            let td = min(size.width, size.height) * 0.024
+            let targetDiameter = min(size.width, size.height) * 0.024
             Circle()
                 .fill(color.opacity(opacity * 0.5))
-                .frame(width: td, height: td)
+                .frame(width: targetDiameter, height: targetDiameter)
                 .position(x: size.width / 2, y: size.height / 2)
         }
     }
@@ -475,10 +475,10 @@ struct PerspectiveGrid: View {
             }
             .stroke(color.opacity(opacity), lineWidth: 1.5)
 
-            let pd = min(size.width, size.height) * 0.02
+            let pointDiameter = min(size.width, size.height) * 0.02
             Circle()
                 .fill(color)
-                .frame(width: pd, height: pd)
+                .frame(width: pointDiameter, height: pointDiameter)
                 .position(x: centerX, y: centerY)
         }
     }
