@@ -188,19 +188,26 @@ A: 确保设备已安装 Google Play 服务并已授予相机权限。
 
 ## 贡献
 
-```bash
-git checkout -b feature/your-feature
-git commit -m 'Add your feature'
-git push origin feature/your-feature
-# 创建 Pull Request
-```
+欢迎提交 [Issue](https://github.com/MinJung-Go/CompositionHelper/issues) 或 Pull Request。更多协作规范请参考仓库的 [CONTRIBUTING.md](CONTRIBUTING.md) 和 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。
 
 ---
 
 ## 许可证
 
-MIT License - 详见 [LICENSE](LICENSE)
+本项目采用 [MIT License](LICENSE) 开源，版权所有 © 2026 CompositionHelper Project。
 
 ---
 
-**项目主页**: [GitHub](https://github.com/MinJung-Go/CompositionHelper) | **问题反馈**: [Issues](https://github.com/MinJung-Go/CompositionHelper/issues) | **iOS 版本**: [ios 分支](https://github.com/MinJung-Go/CompositionHelper/tree/ios)
+<div align="center">
+
+**如果这个项目对你有帮助，欢迎给个 Star！**
+
+如有问题或建议，欢迎提交 [Issue](https://github.com/MinJung-Go/CompositionHelper/issues)
+
+Made by [MinJung-Go](https://github.com/MinJung-Go)
+
+</div>
+
+---
+
+**项目主页**: [GitHub](https://github.com/MinJung-Go/CompositionHelper) | **iOS 版本**: [ios 分支](https://github.com/MinJung-Go/CompositionHelper/tree/ios)
