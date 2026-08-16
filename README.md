@@ -1,12 +1,16 @@
 # CompositionHelper Android
 
-> 智能摄影构图辅助工具 — 实时相机引导 + AI 构图推荐
+<div align="center">
+
+**智能摄影构图辅助工具 — 实时相机引导 + AI 构图推荐**
 
 [![Android CI](https://github.com/MinJung-Go/CompositionHelper/actions/workflows/android-ci.yml/badge.svg)](https://github.com/MinJung-Go/CompositionHelper/actions)
 [![API 24+](https://img.shields.io/badge/API-24%2B-brightgreen)](https://developer.android.com/studio)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.20+-purple.svg)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack-Compose-blue.svg)](https://developer.android.com/jetpack/compose)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+</div>
 
 ---
 
@@ -207,7 +211,3 @@ A: 确保设备已安装 Google Play 服务并已授予相机权限。
 Made by [MinJung-Go](https://github.com/MinJung-Go)
 
 </div>
-
----
-
-**项目主页**: [GitHub](https://github.com/MinJung-Go/CompositionHelper) | **iOS 版本**: [ios 分支](https://github.com/MinJung-Go/CompositionHelper/tree/ios)
