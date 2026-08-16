@@ -188,7 +188,7 @@ A: 确保设备已安装 Google Play 服务并已授予相机权限。
 
 ## 贡献
 
-欢迎提交 [Issue](https://github.com/MinJung-Go/CompositionHelper/issues) 或 Pull Request。更多协作规范请参考仓库的 [CONTRIBUTING.md](CONTRIBUTING.md) 和 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。
+欢迎提交 [Issue](https://github.com/MinJung-Go/CompositionHelper/issues) 或 Pull Request。
 
 ---
 
