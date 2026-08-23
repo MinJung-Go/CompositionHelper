@@ -10,6 +10,8 @@
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack-Compose-blue.svg)](https://developer.android.com/jetpack/compose)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+[功能亮点](#功能亮点) • [快速开始](#快速开始) • [使用指南](#使用指南) • [19 种构图类型](#19-种构图类型) • [技术架构](#技术架构) • [权限说明](#权限说明) • [常见问题](#常见问题) • [详细文档](#详细文档) • [贡献](#贡献) • [许可证](#许可证)
+
 </div>
 
 ---
