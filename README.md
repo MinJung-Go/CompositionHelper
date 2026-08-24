@@ -1,8 +1,6 @@
-# CompositionHelper Android
-
 <div align="center">
 
-**智能摄影构图辅助工具 — 实时相机引导 + AI 构图推荐**
+<h1>CompositionHelper Android</h1>
 
 [![Android CI](https://github.com/MinJung-Go/CompositionHelper/actions/workflows/android-ci.yml/badge.svg)](https://github.com/MinJung-Go/CompositionHelper/actions)
 [![API 24+](https://img.shields.io/badge/API-24%2B-brightgreen)](https://developer.android.com/studio)
@@ -10,11 +8,11 @@
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack-Compose-blue.svg)](https://developer.android.com/jetpack/compose)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+**智能摄影构图辅助工具 — 实时相机引导 + AI 构图推荐**
+
 [功能亮点](#功能亮点) • [快速开始](#快速开始) • [使用指南](#使用指南) • [19 种构图类型](#19-种构图类型) • [技术架构](#技术架构) • [权限说明](#权限说明) • [常见问题](#常见问题) • [详细文档](#详细文档) • [贡献](#贡献) • [许可证](#许可证)
 
 </div>
-
----
 
 > **iOS 版本**: 查看 [ios 分支](https://github.com/MinJung-Go/CompositionHelper/tree/ios)
 
