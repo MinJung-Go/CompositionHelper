@@ -35,7 +35,8 @@ fun CameraBottomBar(
     onColorChange: (Color) -> Unit,
     onCapture: () -> Unit,
     onOpenGallery: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    captureEnabled: Boolean = true
 ) {
     var showSettings by remember { mutableStateOf(false) }
 
@@ -102,7 +103,7 @@ fun CameraBottomBar(
                 Icon(Icons.Default.Tune, "设置", tint = Color.White)
             }
 
-            ShutterButton(onClick = onCapture)
+            ShutterButton(onClick = onCapture, enabled = captureEnabled)
 
             IconButton(onClick = onOpenGallery) {
                 Icon(Icons.Default.PhotoLibrary, "相册", tint = Color.White)

@@ -72,3 +72,16 @@ CompositionHelper/
 
 # Project-local Android SDK
 .android-sdk/
+
+# Python caches and local credentials
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+
+# Local photo experiments and build packages
+/artifacts/*
+!/artifacts/app-icon/
+*.apk
+*.aab

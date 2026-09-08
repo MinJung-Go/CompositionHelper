@@ -28,7 +28,7 @@ class FrameAnalyzer(
         private const val ANALYSIS_INTERVAL_MS = 2500L
     }
 
-    private val objectDetector: ObjectDetector by lazy {
+    private val detector = lazy {
         val options = ObjectDetectorOptions.Builder()
             .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)
             .enableClassification()
@@ -36,12 +36,22 @@ class FrameAnalyzer(
         ObjectDetection.getClient(options)
     }
 
+    private val objectDetector: ObjectDetector get() = detector.value
+    private var enabled = false
+    private var closed = false
+    private var generation = 0
+    fun setEnabled(value: Boolean) {
+        if (value != enabled) { generation++; enabled = value; lastAnalysisTimestamp = 0L }
+    }
+
     private val mainHandler = Handler(Looper.getMainLooper())
     private var lastAnalysisTimestamp = 0L
 
     @OptIn(ExperimentalGetImage::class)
     override fun analyze(imageProxy: ImageProxy) {
-        val currentTimestamp = System.currentTimeMillis()
+        if (closed || !enabled) { imageProxy.close(); return }
+        val token = generation
+        val currentTimestamp = android.os.SystemClock.elapsedRealtime()
         if (currentTimestamp - lastAnalysisTimestamp < ANALYSIS_INTERVAL_MS) {
             imageProxy.close()
             return
@@ -54,43 +64,29 @@ class FrameAnalyzer(
             return
         }
 
-        val inputImage = InputImage.fromMediaImage(
-            mediaImage,
-            imageProxy.imageInfo.rotationDegrees
-        )
+        val inputImage = try { InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees) }
+            catch (e: Exception) { imageProxy.close(); return }
 
-        objectDetector.process(inputImage)
+        val pending = try { objectDetector.process(inputImage) }
+        catch (e: Exception) { imageProxy.close(); return }
+        pending
             .addOnSuccessListener { detectedObjects ->
-                val rotationDegrees = imageProxy.imageInfo.rotationDegrees
-                val imageWidth = if (rotationDegrees == 90 || rotationDegrees == 270) {
-                    imageProxy.height
-                } else {
-                    imageProxy.width
-                }
-                val imageHeight = if (rotationDegrees == 90 || rotationDegrees == 270) {
-                    imageProxy.width
-                } else {
-                    imageProxy.height
-                }
-
-                val subjects = detectedObjects.map { obj ->
-                    DetectedSubject(
-                        boundingBox = RectF(
-                            left = obj.boundingBox.left.toFloat() / imageWidth,
-                            top = obj.boundingBox.top.toFloat() / imageHeight,
-                            right = obj.boundingBox.right.toFloat() / imageWidth,
-                            bottom = obj.boundingBox.bottom.toFloat() / imageHeight
-                        ),
-                        confidence = 0.8f,
-                        type = SubjectType.OBJECT
-                    )
+                if (closed || !enabled || token != generation) return@addOnSuccessListener
+                val crop = imageProxy.cropRect
+                val viewport = CameraGeometry.rotatedCrop(RectF(crop.left.toFloat(),crop.top.toFloat(),
+                    crop.right.toFloat(),crop.bottom.toFloat()), imageProxy.width.toFloat(),imageProxy.height.toFloat(),
+                    imageProxy.imageInfo.rotationDegrees)
+                val subjects = detectedObjects.mapNotNull { obj ->
+                    val box = obj.boundingBox
+                    CameraGeometry.toViewport(RectF(box.left.toFloat(),box.top.toFloat(),box.right.toFloat(),box.bottom.toFloat()),
+                        viewport)?.let { DetectedSubject(it, .8f, SubjectType.OBJECT) }
                 }
 
                 val result = LightweightAnalyzer.recommend(subjects)
 
                 // 回到主线程更新 Compose 状态
                 mainHandler.post {
-                    onAnalysisResult(result)
+                    if (!closed && enabled && token == generation) onAnalysisResult(result)
                 }
             }
             .addOnFailureListener { e ->
@@ -103,7 +99,9 @@ class FrameAnalyzer(
     }
 
     fun close() {
-        objectDetector.close()
+        closed = true; generation++
+        mainHandler.removeCallbacksAndMessages(null)
+        if (detector.isInitialized()) detector.value.close()
     }
 }
 
@@ -200,6 +198,6 @@ object LightweightAnalyzer {
             dy > 0.03f -> parts.add("向下")
             dy < -0.03f -> parts.add("向上")
         }
-        return if (parts.isNotEmpty()) "稍微${parts.joinToString("")}移动" else null
+        return if (parts.isNotEmpty()) "让主体在画面中稍微${parts.joinToString("")}移动" else null
     }
 }

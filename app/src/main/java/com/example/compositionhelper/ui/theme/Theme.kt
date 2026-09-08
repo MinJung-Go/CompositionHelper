@@ -21,16 +21,16 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFFBB86FC),
-    secondary = Color(0xFF03DAC6),
-    tertiary = Color(0xFF3700B3),
+    primary = Color(0xFFE3CAA1), onPrimary = Color(0xFF272116),
+    primaryContainer = Color(0xFF3B3327), onPrimaryContainer = Color(0xFFF1DFC2),
+    secondary = Color(0xFFB5C5BE), onSecondary = Color(0xFF17251F),
+    background = Color(0xFF101113), onBackground = Color(0xFFF0EFEC),
+    surface = Color(0xFF17191C), onSurface = Color(0xFFF0EFEC),
+    surfaceVariant = Color(0xFF24262A), onSurfaceVariant = Color(0xFFA5A7AE),
+    outline = Color(0xFF414349), outlineVariant = Color(0xFF2A2C30),
+    error = Color(0xFFFFB4AB)
 )
-
-private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF6200EE),
-    secondary = Color(0xFF03DAC6),
-    tertiary = Color(0xFF3700B3),
-)
+private val LightColorScheme = DarkColorScheme
 
 val Typography = androidx.compose.material3.Typography(
     bodyLarge = TextStyle(
@@ -58,8 +58,8 @@ val Typography = androidx.compose.material3.Typography(
 
 @Composable
 fun CompositionHelperTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    darkTheme: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -76,7 +76,8 @@ fun CompositionHelperTheme(
             val window = (view.context as Activity).window
             window.statusBarColor = android.graphics.Color.TRANSPARENT
             window.navigationBarColor = android.graphics.Color.TRANSPARENT
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = false
         }
     }
 

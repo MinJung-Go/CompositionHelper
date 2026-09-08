@@ -1,5 +1,8 @@
 package com.example.compositionhelper
 
+import android.net.Uri
+import com.example.compositionhelper.color.ColorEditorScreen
+import com.example.compositionhelper.samples.PhotoSamplesScreen
 import android.Manifest
 import android.os.Bundle
 import android.os.Build
@@ -73,8 +76,22 @@ fun CompositionHelperNavigation(initialDestination: String = "camera") {
                 },
                 onOpenGallery = {
                     navController.navigate("gallery")
-                }
+                },
+                onOpenSamples = { navController.navigate("samples") },
+                onPhotoSaved = { uri -> navController.navigate("color?uri=${Uri.encode(uri.toString())}") }
             )
+        }
+
+        composable("samples") {
+            PhotoSamplesScreen(onBack = { navController.popBackStack() },
+                onColorPhoto = { uri -> navController.navigate("color?uri=${Uri.encode(uri.toString())}") })
+        }
+
+        composable("color?uri={uri}") { entry ->
+            val photoUri = entry.arguments?.getString("uri")
+            if (photoUri != null) {
+                ColorEditorScreen(Uri.parse(photoUri), onBack = { navController.popBackStack() })
+            }
         }
 
         // 相册分析模式
@@ -82,7 +99,9 @@ fun CompositionHelperNavigation(initialDestination: String = "camera") {
             CompositionHelperApp(
                 hasPermissions = hasGalleryPermission,
                 onRequestPermissions = { galleryPermissionState.launchPermissionRequest() },
-                onOpenCamera = { navController.navigate("camera") }
+                onOpenCamera = { navController.navigate("camera") },
+                onColorPhoto = { uri -> navController.navigate("color?uri=${Uri.encode(uri.toString())}") },
+                onOpenSamples = { navController.navigate("samples") }
             )
         }
     }

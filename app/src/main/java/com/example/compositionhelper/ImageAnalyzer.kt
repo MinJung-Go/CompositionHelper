@@ -9,6 +9,11 @@ import com.google.mlkit.vision.objects.ObjectDetection
 import com.google.mlkit.vision.objects.ObjectDetector
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.sqrt
@@ -24,8 +29,9 @@ class ImageAnalyzer {
         // 单例检测器，避免每次分析都创建新实例
         private val objectDetector: ObjectDetector by lazy {
             val options = ObjectDetectorOptions.Builder()
-                .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)
+                .setDetectorMode(ObjectDetectorOptions.SINGLE_IMAGE_MODE)
                 .enableClassification()
+                .enableMultipleObjects()
                 .build()
             ObjectDetection.getClient(options)
         }
@@ -33,10 +39,12 @@ class ImageAnalyzer {
         /**
          * 主分析方法
          */
-        suspend fun analyze(bitmap: Bitmap): CompositionAnalysis {
+        suspend fun analyze(bitmap: Bitmap): CompositionAnalysis = withContext(Dispatchers.Default) {
             val detectedSubjects = detectObjects(bitmap)
+            currentCoroutineContext().ensureActive()
             val detectedLines = detectEdges(bitmap)
-            val characteristics = analyzeCharacteristics(bitmap)
+            val characteristics = analyzeCharacteristics(bitmap, detectedLines)
+            currentCoroutineContext().ensureActive()
 
             val recommendations = recommendCompositions(
                 subjects = detectedSubjects,
@@ -44,7 +52,7 @@ class ImageAnalyzer {
                 characteristics = characteristics
             )
 
-            return CompositionAnalysis(
+            CompositionAnalysis(
                 recommendedCompositions = recommendations.map { it.type },
                 confidenceScores = recommendations.associate { it.type to it.score },
                 detectedSubjects = detectedSubjects,
@@ -81,6 +89,7 @@ class ImageAnalyzer {
                 }
 
                 Log.d(TAG, "检测到 ${subjects.size} 个对象")
+            } catch (e: CancellationException) { throw e
             } catch (e: Exception) {
                 Log.e(TAG, "对象检测失败: ${e.message}")
             }
@@ -205,8 +214,7 @@ class ImageAnalyzer {
         /**
          * 图像特征分析
          */
-        private suspend fun analyzeCharacteristics(bitmap: Bitmap): ImageCharacteristics {
-            val lines = detectEdges(bitmap)
+        private fun analyzeCharacteristics(bitmap: Bitmap, lines: List<Line>): ImageCharacteristics {
             val hasStrongLeadingLines = lines.size > 3
             val hasSymmetry = detectSymmetry(bitmap)
             val brightnessDistribution = analyzeBrightnessDistribution(bitmap)

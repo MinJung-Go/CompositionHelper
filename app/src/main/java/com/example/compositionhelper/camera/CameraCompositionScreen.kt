@@ -1,5 +1,12 @@
 package com.example.compositionhelper.camera
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import android.widget.Toast
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.*
@@ -24,6 +31,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.clipToBounds
+import kotlinx.coroutines.CancellationException
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.compositionhelper.model.*
 import com.example.compositionhelper.overlay.CameraCompositionOverlay
@@ -35,7 +43,9 @@ fun CameraCompositionScreen(
     hasCameraPermission: Boolean,
     onRequestCameraPermission: () -> Unit,
     onNavigateBack: () -> Unit,
-    onOpenGallery: () -> Unit
+    onOpenGallery: () -> Unit,
+    onPhotoSaved: (Uri) -> Unit = {},
+    onOpenSamples: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -60,6 +70,30 @@ fun CameraCompositionScreen(
     // 相机管理器
     val cameraManager = remember { CameraManager(context, lifecycleOwner) }
     var cameraInitialized by remember { mutableStateOf(false) }
+    var cameraReady by remember { mutableStateOf(false) }
+    var cameraError by remember { mutableStateOf<String?>(null) }
+    var cameraRetry by remember { mutableStateOf(0) }
+
+    var capturing by remember { mutableStateOf(false) }
+    fun capture() {
+        if (capturing || !cameraReady) return
+        capturing = true
+        cameraManager.capturePhoto(
+            onSaved = { uri ->
+                capturing = false
+                Toast.makeText(context, "原片已保存", Toast.LENGTH_SHORT).show()
+                onPhotoSaved(uri)
+            },
+            onError = { e ->
+                capturing = false
+                Toast.makeText(context, "拍照失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+    val savePermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) capture()
+        else Toast.makeText(context, "需要存储权限才能保存照片", Toast.LENGTH_SHORT).show()
+    }
 
     // 帧分析器
     val frameAnalyzer = remember {
@@ -70,6 +104,8 @@ fun CameraCompositionScreen(
             guidanceHint = result.guidanceHint
         }
     }
+
+    LaunchedEffect(isSmartMode) { frameAnalyzer.setEnabled(isSmartMode) }
 
     // PreviewView 引用
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
@@ -85,10 +121,14 @@ fun CameraCompositionScreen(
     }
 
     // 初始化相机
-    LaunchedEffect(hasCameraPermission) {
+    LaunchedEffect(hasCameraPermission, cameraRetry) {
+        cameraReady = false; cameraError = null
         if (hasCameraPermission) {
-            cameraManager.initialize()
-            cameraInitialized = true
+            try {
+                cameraManager.initialize()
+                cameraInitialized = true
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { cameraInitialized = false; cameraError = "相机初始化失败，请重试" }
         } else {
             cameraInitialized = false
         }
@@ -109,29 +149,21 @@ fun CameraCompositionScreen(
             .background(Color.Black)
     ) {
         val density = LocalDensity.current
+        val statusHeight = WindowInsets.statusBars.getTop(density)
         val captureTopReserve = with(density) {
-            if (showControls && topControlsSize.height > 0) topControlsSize.height.toDp() else 24.dp
+            if (topControlsSize.height > 0) topControlsSize.height.toDp() else statusHeight.toDp() + 56.dp
         }
         val captureBottomReserve = with(density) {
-            if (showControls && bottomControlsSize.height > 0) bottomControlsSize.height.toDp() else 24.dp
+            if (bottomControlsSize.height > 0) bottomControlsSize.height.toDp() else 240.dp
         }
-        val availableCaptureHeight = (maxHeight - captureTopReserve - captureBottomReserve)
-            .coerceAtLeast(1.dp)
         val targetCaptureAspectRatio = compositionType.captureAspectRatio(
             isPortrait = maxHeight >= maxWidth
         )
-        val fullWidthHeight = maxWidth / targetCaptureAspectRatio
-        val captureWidth = if (fullWidthHeight <= availableCaptureHeight) {
-            maxWidth
-        } else {
-            availableCaptureHeight * targetCaptureAspectRatio
-        }
-        val captureHeight = if (fullWidthHeight <= availableCaptureHeight) {
-            fullWidthHeight
-        } else {
-            availableCaptureHeight
-        }
-        val captureOffsetY = captureTopReserve + (availableCaptureHeight - captureHeight) / 2
+        val fitted = CameraGeometry.fit(maxWidth.value, maxHeight.value, captureTopReserve.value,
+            captureBottomReserve.value, targetCaptureAspectRatio)
+        val captureWidth = fitted.width.dp
+        val captureHeight = fitted.height.dp
+        val captureOffsetY = fitted.top.dp
 
         LaunchedEffect(
             cameraInitialized,
@@ -139,7 +171,7 @@ fun CameraCompositionScreen(
             previewView,
             hasCameraPermission,
             captureAreaSize,
-            targetCaptureAspectRatio
+            targetCaptureAspectRatio, cameraRetry
         ) {
             val measuredPreviewView = previewView
             if (
@@ -149,13 +181,14 @@ fun CameraCompositionScreen(
                 captureAreaSize.width > 0 &&
                 captureAreaSize.height > 0
             ) {
-                cameraManager.bindPreview(
+                cameraReady = cameraManager.bindPreview(
                     previewView = measuredPreviewView,
                     captureWidth = captureAreaSize.width,
                     captureHeight = captureAreaSize.height,
                     enableAnalysis = isSmartMode,
                     analyzer = if (isSmartMode) frameAnalyzer else null
                 )
+                cameraError = if (cameraReady) null else "相机无法启动，请检查设备相机是否可用"
             }
         }
 
@@ -172,7 +205,7 @@ fun CameraCompositionScreen(
             AndroidView(
                 factory = { ctx ->
                     PreviewView(ctx).apply {
-                        implementationMode = PreviewView.ImplementationMode.PERFORMANCE
+                        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                         scaleType = PreviewView.ScaleType.FILL_CENTER
                     }.also { previewView = it }
                 },
@@ -216,11 +249,11 @@ fun CameraCompositionScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color.Black.copy(alpha = 0.4f))
+                        .onSizeChanged { topControlsSize = it }
+                        .background(Color.Black)
                         .statusBarsPadding()
                         .padding(horizontal = 8.dp, vertical = 4.dp)
-                        .align(Alignment.TopCenter)
-                        .onSizeChanged { topControlsSize = it },
+                        .align(Alignment.TopCenter),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = onNavigateBack) {
@@ -234,6 +267,7 @@ fun CameraCompositionScreen(
                         shape = RoundedCornerShape(20.dp),
                         color = if (isSmartMode) Color.White.copy(alpha = 0.3f) else Color.Transparent,
                         onClick = {
+                            if (capturing) return@Surface
                             isSmartMode = !isSmartMode
                             if (!isSmartMode) {
                                 detectedSubjects = emptyList()
@@ -300,25 +334,31 @@ fun CameraCompositionScreen(
                     selectedCategory = selectedCategory,
                     lineOpacity = lineOpacity,
                     lineColor = lineColor,
-                    onCompositionChange = { compositionType = it },
+                    onCompositionChange = { if (!capturing) compositionType = it },
                     onCategoryChange = { selectedCategory = it },
                     onOpacityChange = { lineOpacity = it },
                     onColorChange = { lineColor = it },
                     onCapture = {
-                        cameraManager.capturePhoto(
-                            onSaved = { uri ->
-                                Toast.makeText(context, "已保存到相册", Toast.LENGTH_SHORT).show()
-                            },
-                            onError = { e ->
-                                Toast.makeText(context, "拍照失败: ${e.message}", Toast.LENGTH_SHORT).show()
-                            }
-                        )
+                        if (Build.VERSION.SDK_INT <= 28 && ContextCompat.checkSelfPermission(context,
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                            savePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                        } else capture()
                     },
                     onOpenGallery = onOpenGallery,
+                    captureEnabled = cameraReady && !capturing,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .onSizeChanged { bottomControlsSize = it }
+                        .navigationBarsPadding()
                 )
+            }
+        }
+        if (hasCameraPermission && cameraError != null) {
+            Column(Modifier.align(Alignment.Center).background(Color.Black).padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(cameraError!!, color = Color.White)
+                TextButton(onClick = { cameraRetry++ }) { Text("重试相机") }
+                TextButton(onClick = onOpenSamples) { Text("使用参考照片") }
             }
         }
         if (!hasCameraPermission) {
@@ -346,6 +386,7 @@ fun CameraCompositionScreen(
                     Button(onClick = onRequestCameraPermission) {
                         Text("重新请求权限")
                     }
+                    TextButton(onClick = onOpenSamples) { Text("先用内置参考照片", color = Color.White) }
                 }
             }
         }

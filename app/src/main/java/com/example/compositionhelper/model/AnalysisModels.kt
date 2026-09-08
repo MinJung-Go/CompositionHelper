@@ -81,11 +81,11 @@ data class RectF(val left: Float, val top: Float, val right: Float, val bottom: 
             right = minOf(right, other.right),
             bottom = minOf(bottom, other.bottom)
         )
-        val intersectionArea = intersection.width() * intersection.height()
+        val intersectionArea = intersection.width().coerceAtLeast(0f) * intersection.height().coerceAtLeast(0f)
         val selfArea = width() * height()
         val otherArea = other.width() * other.height()
 
-        return intersectionArea > 0 && (intersectionArea / selfArea > 0.3f || intersectionArea / otherArea > 0.3f)
+        return selfArea > 0 && otherArea > 0 && intersectionArea > 0 && (intersectionArea / selfArea > 0.3f || intersectionArea / otherArea > 0.3f)
     }
 }
 

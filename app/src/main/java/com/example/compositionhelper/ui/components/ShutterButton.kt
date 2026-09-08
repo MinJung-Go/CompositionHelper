@@ -16,21 +16,22 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ShutterButton(
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     Box(
         modifier = modifier
             .size(72.dp)
             .clip(CircleShape)
             .border(4.dp, Color.White, CircleShape)
-            .clickable(onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = Modifier
                 .size(58.dp)
                 .clip(CircleShape)
-                .background(Color.White)
+                .background(if (enabled) Color.White else Color.DarkGray)
         )
     }
 }

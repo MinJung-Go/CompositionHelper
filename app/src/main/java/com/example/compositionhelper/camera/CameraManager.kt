@@ -53,8 +53,8 @@ class CameraManager(
         captureHeight: Int,
         enableAnalysis: Boolean = false,
         analyzer: ImageAnalysis.Analyzer? = null
-    ) {
-        val provider = cameraProvider ?: return
+    ): Boolean {
+        val provider = cameraProvider ?: return false
         val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
         val rotation = previewView.display?.rotation ?: Surface.ROTATION_0
@@ -87,7 +87,7 @@ class CameraManager(
             useCases.add(imageAnalysis!!)
         }
 
-        try {
+        return try {
             provider.unbindAll()
             val viewPort = ViewPort.Builder(
                 Rational(captureWidth.coerceAtLeast(1), captureHeight.coerceAtLeast(1)),
@@ -101,8 +101,11 @@ class CameraManager(
                 .build()
             provider.bindToLifecycle(lifecycleOwner, cameraSelector, useCaseGroup)
             Log.d(TAG, "Camera bound with ${useCases.size} use cases")
+            true
         } catch (e: Exception) {
             Log.e(TAG, "Camera binding failed: ${e.message}")
+            imageCapture = null
+            false
         }
     }
 
@@ -134,7 +137,9 @@ class CameraManager(
             ContextCompat.getMainExecutor(context),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                    onSaved(output.savedUri ?: MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                    val savedUri = output.savedUri
+                    if (savedUri != null) onSaved(savedUri)
+                    else onError(IllegalStateException("未获得保存照片的地址"))
                 }
 
                 override fun onError(exception: ImageCaptureException) {
