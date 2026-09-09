@@ -146,3 +146,9 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 ---
 
 **其他平台**: [Android 版本](https://github.com/MinJung-Go/CompositionHelper/tree/master)
+
+## iOS 智能调色
+
+相机顶部或相册顶部点击“智能调色”，也可以从拍照结果进入。支持 Gemini 场景调色、本地曲线/HSL/RGB、左右对比、手动微调、撤销和原尺寸副本导出；安装包包含四张离线参考照片。AI 设置使用自己的 Key，只保留在页面内存中。
+
+界面会列出实际调整参数、预览变化像素比例和渲染状态，避免将 RGB 为零误认为 AI 未生效。构建与验收范围见 [iOS 调色适配说明](docs/IOS_COLOR.md)。

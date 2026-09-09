@@ -25,7 +25,8 @@ let package = Package(
         .target(
             name: "CompositionHelper",
             dependencies: [],
-            path: "Sources"
+            path: "Sources",
+            resources: [.process("Resources")]
         )
     ]
 )

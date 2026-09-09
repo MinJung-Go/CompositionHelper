@@ -113,3 +113,9 @@ iOSInjectionProject/
 .android-sdk/
 .gradle/
 local.properties
+
+# Local cross-platform caches and secrets
+__pycache__/
+*.py[cod]
+.env
+.env.*

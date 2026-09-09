@@ -35,11 +35,9 @@ jobs:
       run: |
         plutil -lint Info.plist
     
-    - name: Create Archive (Test)
-      run: |
-        echo "Archive creation test"
-        echo "This would create a .xcarchive in a real project"
-    
+    - name: Color pipeline regression tests
+      run: tools/test-color-core.sh
+
     - name: Upload Build Artifacts
       if: success()
       uses: actions/upload-artifact@v6

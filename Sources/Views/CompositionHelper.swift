@@ -4,6 +4,7 @@ import PhotosUI
 // MARK: - 相册模式主视图
 struct CompositionHelperView: View {
     @State private var selectedImage: UIImage?
+    @State private var showColorStudio = false
     @State private var selectedComposition: CompositionType = .ruleOfThirds
     @State private var lineOpacity: Double = 0.7
     @State private var lineColor: Color = .yellow
@@ -200,8 +201,10 @@ struct CompositionHelperView: View {
                 .padding()
             }
             .navigationTitle("构图辅助")
+            .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("智能调色") { showColorStudio = true } } }
             .navigationBarTitleDisplayMode(.inline)
         }
+        .sheet(isPresented: $showColorStudio) { ColorEditorView(initialData: selectedImage?.colorEditorSourceData()) }
         .sheet(isPresented: $showImagePicker) {
             ImagePicker { image in
                 selectedImage = image

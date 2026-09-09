@@ -74,6 +74,10 @@ class CameraManager: NSObject, ObservableObject {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
 
+            if self.videoDeviceInput != nil {
+                self.startSession()
+                return
+            }
             self.session.beginConfiguration()
             self.session.sessionPreset = .photo
 

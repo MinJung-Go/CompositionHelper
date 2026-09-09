@@ -20,6 +20,15 @@
 		A100000B /* ShutterButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000C /* ShutterButton.swift */; };
 		A100000C /* RecommendationChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000D /* RecommendationChip.swift */; };
 		A100000D /* ControlPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000E /* ControlPanel.swift */; };
+		CC0000000000000000000200 = {isa = PBXBuildFile; fileRef = CC0000000000000000000100; };
+		CC0000000000000000000201 = {isa = PBXBuildFile; fileRef = CC0000000000000000000101; };
+		CC0000000000000000000202 = {isa = PBXBuildFile; fileRef = CC0000000000000000000102; };
+		CC0000000000000000000203 = {isa = PBXBuildFile; fileRef = CC0000000000000000000103; };
+		CC0000000000000000000204 = {isa = PBXBuildFile; fileRef = CC0000000000000000000104; };
+		CC0000000000000000000205 = {isa = PBXBuildFile; fileRef = CC0000000000000000000105; };
+		CC0000000000000000000206 = {isa = PBXBuildFile; fileRef = CC0000000000000000000106; };
+		CC0000000000000000000207 = {isa = PBXBuildFile; fileRef = CC0000000000000000000107; };
+		CC0000000000000000000208 = {isa = PBXBuildFile; fileRef = CC0000000000000000000108; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,6 +47,15 @@
 		A200000C /* ShutterButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShutterButton.swift; sourceTree = "<group>"; };
 		A200000D /* RecommendationChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendationChip.swift; sourceTree = "<group>"; };
 		A200000E /* ControlPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPanel.swift; sourceTree = "<group>"; };
+		CC0000000000000000000100 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color/ColorPlan.swift"; sourceTree = "<group>"; };
+		CC0000000000000000000101 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color/ColorPhotoService.swift"; sourceTree = "<group>"; };
+		CC0000000000000000000102 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color/ColorEditorModel.swift"; sourceTree = "<group>"; };
+		CC0000000000000000000103 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color/ColorEditorView.swift"; sourceTree = "<group>"; };
+		CC0000000000000000000104 = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Resources/Assets.xcassets"; sourceTree = "<group>"; };
+		CC0000000000000000000105 = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "Resources/sample_lake.jpg"; sourceTree = "<group>"; };
+		CC0000000000000000000106 = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "Resources/sample_forest.jpg"; sourceTree = "<group>"; };
+		CC0000000000000000000107 = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "Resources/sample_coffee.jpg"; sourceTree = "<group>"; };
+		CC0000000000000000000108 = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "Resources/sample_city.jpg"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +89,15 @@
 		A4000004 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				CC0000000000000000000108,
+				CC0000000000000000000107,
+				CC0000000000000000000106,
+				CC0000000000000000000105,
+				CC0000000000000000000104,
+				CC0000000000000000000103,
+				CC0000000000000000000102,
+				CC0000000000000000000101,
+				CC0000000000000000000100,
 				A2000001 /* CompositionHelperApp.swift */,
 				A4000005 /* Views */,
 				A4000006 /* Analyzers */,
@@ -194,6 +221,11 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CC0000000000000000000208,
+				CC0000000000000000000207,
+				CC0000000000000000000206,
+				CC0000000000000000000205,
+				CC0000000000000000000204,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -204,6 +236,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CC0000000000000000000203,
+				CC0000000000000000000202,
+				CC0000000000000000000201,
+				CC0000000000000000000200,
 				A1000001 /* CompositionHelperApp.swift in Sources */,
 				A1000002 /* CompositionHelper.swift in Sources */,
 				A1000003 /* CompositionAnalyzer.swift in Sources */,

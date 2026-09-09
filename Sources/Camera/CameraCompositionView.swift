@@ -13,6 +13,7 @@ struct CameraCompositionView: View {
     @State private var isSmartMode = false
     @State private var showControls = true
     @State private var showSettings = false
+    @State private var showColorStudio = false
     @State private var showCapturedPhoto = false
     @State private var spiralOrientation = 0 // 0=↘ 1=↙ 2=↗ 3=↖
 
@@ -74,6 +75,7 @@ struct CameraCompositionView: View {
         .onChange(of: isSmartMode) { newValue in
             handleSmartModeChange(newValue)
         }
+        .sheet(isPresented: $showColorStudio) { ColorEditorView() }
         .sheet(isPresented: $showSettings) {
             settingsSheet
         }
@@ -112,8 +114,8 @@ struct CameraCompositionView: View {
     }
 
     private func captureFrame(in size: CGSize, for composition: CompositionType) -> CGRect {
-        let topReserve: CGFloat = showControls ? 88 : 24
-        let bottomReserve: CGFloat = showControls ? 260 : 24
+        let topReserve: CGFloat = 88
+        let bottomReserve: CGFloat = 260
         let availableHeight = max(1, size.height - topReserve - bottomReserve)
         let aspectRatio = composition.captureAspectRatio(isPortrait: size.height >= size.width)
         let fullWidthHeight = size.width / aspectRatio
@@ -158,6 +160,8 @@ struct CameraCompositionView: View {
             }
 
             Spacer()
+
+            Button("调色") { showColorStudio = true }.foregroundColor(.white)
 
             // 黄金螺旋方向切换
             if selectedComposition == .goldenSpiral {
@@ -374,6 +378,7 @@ struct SubjectTrackingOverlay: View {
 
 // MARK: - 拍照结果预览
 struct CapturedPhotoView: View {
+    @State private var showColor = false
     let image: UIImage
     let onDismiss: () -> Void
 
@@ -399,6 +404,8 @@ struct CapturedPhotoView: View {
                             .cornerRadius(10)
                     }
                     Spacer()
+                    Button("智能调色") { showColor = true }
+                        .padding(12).background(Color.black.opacity(0.5)).cornerRadius(10)
 
                     Button {
                         UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
@@ -418,5 +425,6 @@ struct CapturedPhotoView: View {
                 Spacer()
             }
         }
+        .sheet(isPresented: $showColor) { ColorEditorView(initialData: image.colorEditorSourceData()) }
     }
 }
