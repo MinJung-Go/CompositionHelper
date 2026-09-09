@@ -25,6 +25,7 @@ struct ColorEditorView: View {
     @State private var sheet: StudioSheet?
     @State private var range = 0
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let tools = [("曝光", "exposure"), ("对比度", "contrast"), ("阴影", "shadows"),
                          ("高光", "highlights"), ("色温", "temperature"), ("色调", "tint"), ("饱和度", "saturation")]
 
@@ -97,14 +98,19 @@ struct ColorEditorView: View {
 
     private var photoToolbar: some View {
         HStack {
-            Text("你的影像").font(.headline)
+            if !dynamicTypeSize.isAccessibilitySize { Text("你的影像").font(.headline) }
             Spacer()
             PhotosPicker(selection: $selection, matching: .images) {
-                Label("换照片", systemImage: "photo.on.rectangle")
-                    .font(.subheadline).padding(.vertical, 10)
-            }.disabled(editor.busy)
+                if dynamicTypeSize.isAccessibilitySize {
+                    Image(systemName: "photo.on.rectangle")
+                        .font(.system(size: 20)).frame(width: 44, height: 44)
+                } else {
+                    Label("换照片", systemImage: "photo.on.rectangle")
+                        .font(.subheadline).padding(.vertical, 10)
+                }
+            }.disabled(editor.busy).accessibilityLabel("更换照片")
             Button { sheet = .samples } label: {
-                Image(systemName: "square.grid.2x2").frame(width: 44, height: 44)
+                Image(systemName: "square.grid.2x2").font(.system(size: 20)).frame(width: 44, height: 44)
             }.disabled(editor.busy).accessibilityLabel("选择内置样片")
         }
     }
@@ -172,7 +178,8 @@ struct ColorEditorView: View {
     private func comparison(_ original: UIImage, available: CGSize) -> some View {
         let ratio = original.size.width / max(original.size.height, 1)
         let width = min(max(available.width - 40, 1), 720)
-        let height = min(width / ratio, max(220, min(available.height * 0.62, 520)))
+        let minimumHeight: CGFloat = dynamicTypeSize.isAccessibilitySize ? 140 : 220
+        let height = min(width / ratio, max(minimumHeight, min(available.height * 0.62, 520)))
         return ZStack {
             RoundedRectangle(cornerRadius: 20).fill(Color.black)
             Image(uiImage: mode == .edited ? (editor.preview ?? original) : original)
@@ -204,7 +211,7 @@ struct ColorEditorView: View {
     }
 
     private func photoBadge(_ text: String) -> some View {
-        Text(text).font(.caption.weight(.medium)).foregroundColor(.white)
+        Text(text).font(.system(size: 12, weight: .medium)).foregroundColor(.white)
             .padding(.horizontal, 10).padding(.vertical, 5)
             .background(.black.opacity(0.5), in: Capsule())
     }
@@ -307,7 +314,7 @@ struct ColorEditorView: View {
             HStack {
                 Text(title).font(.subheadline)
                 Spacer()
-                Text(percentage ? "\(Int(value.wrappedValue * 100))%" : String(format: "%+.2f", value.wrappedValue))
+                Text(percentage ? "\(Int(value.wrappedValue * 100))%" : String(format: "%+.4f", value.wrappedValue))
                     .font(.caption.monospacedDigit()).foregroundColor(StudioStyle.gold)
             }
             Slider(value: value, in: limits, onEditingChanged: { editing in
