@@ -1,155 +1,408 @@
 import SwiftUI
 import PhotosUI
 
+private enum StudioStyle {
+    static let background = Color(red: 0.063, green: 0.067, blue: 0.075)
+    static let surface = Color(red: 0.105, green: 0.11, blue: 0.12)
+    static let gold = Color(red: 0.89, green: 0.79, blue: 0.63)
+}
+
+private enum StudioSheet: String, Identifiable {
+    case settings, samples
+    var id: String { rawValue }
+}
+
+private enum PreviewMode: String, CaseIterable {
+    case comparison = "对比", edited = "调色后", original = "原图"
+}
+
 struct ColorEditorView: View {
     var initialData: Data? = nil
     @StateObject private var editor = ColorEditorModel()
     @State private var selection: PhotosPickerItem?
-    @State private var mode = "左右对比"
+    @State private var mode = PreviewMode.comparison
     @State private var divider = 0.5
-    @State private var showSettings = false
+    @State private var sheet: StudioSheet?
     @State private var range = 0
     @Environment(\.dismiss) private var dismiss
-    private let gold = Color(red:0.89, green:0.79, blue:0.63)
-    private let tools = [("曝光","exposure"),("对比度","contrast"),("阴影","shadows"),("高光","highlights"),
-                         ("色温","temperature"),("色调","tint"),("饱和度","saturation")]
+    private let tools = [("曝光", "exposure"), ("对比度", "contrast"), ("阴影", "shadows"),
+                         ("高光", "highlights"), ("色温", "temperature"), ("色调", "tint"), ("饱和度", "saturation")]
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment:.leading, spacing:20) {
-                    PhotosPicker(selection:$selection, matching:.images) {
-                        Label(editor.original == nil ? "选择照片" : "更换照片", systemImage:"photo.on.rectangle")
-                            .frame(maxWidth:.infinity).padding()
-                    }.buttonStyle(.bordered).disabled(editor.busy)
-                    samples
-                    DisclosureGroup("参考照片来源") {
-                        Link("Kata · 湖泊", destination: URL(string:"https://www.pexels.com/photo/mountain-landscape-with-lake-14958494/")!)
-                        Link("Aysegul Aytoren · 森林", destination: URL(string:"https://www.pexels.com/photo/a-forest-with-mossy-rocks-14755971/")!)
-                        Link("Negative Space · 咖啡", destination: URL(string:"https://www.pexels.com/photo/caffeine-coffee-cup-mug-134577/")!)
-                        Link("Mo Eid · 城市", destination: URL(string:"https://www.pexels.com/photo/drone-shot-of-city-with-skyscrapers-17910086/")!)
-                        Link("Pexels 许可", destination: URL(string:"https://www.pexels.com/license/")!)
-                    }.font(.caption)
-                    if let original = editor.original {
-                        Picker("预览方式", selection:$mode) {
-                            ForEach(["左右对比","调色后","原图"], id:\.self) { Text($0) }
-                        }.pickerStyle(.segmented)
-                        comparison(original)
-                        if mode == "左右对比" { Slider(value:$divider, in:0...1) { Text("前后对比分界") } }
-                        Text(editor.status).foregroundColor(gold).accessibilityIdentifier("colorStatus")
-                        Text(editor.difference).font(.caption).foregroundColor(.secondary)
-                        if !editor.ready && !editor.busy { Text("当前预览尚未对应最新参数").font(.caption); Button("重试渲染") { editor.render() } }
-                        if !editor.plan.scene.isEmpty { Text(editor.plan.scene).font(.headline) }
-                        if !editor.plan.intent.isEmpty { Text(editor.plan.intent).foregroundColor(.secondary) }
-                        adjustment("效果强度", value:$editor.strength, limits:0...1)
-                        HStack {
-                            Button("撤销") { editor.undo() }.disabled(editor.history.isEmpty)
-                            Spacer(); Button("重置") { editor.reset() }
-                            Spacer(); Button("恢复 AI 方案") { editor.restoreAI() }.disabled(editor.lastAI == nil)
-                        }.disabled(editor.busy)
-                        DisclosureGroup("实际调整参数") {
-                            Text(editor.plan.summary).font(.system(.caption,design:.monospaced))
-                                .frame(maxWidth:.infinity,alignment:.leading).textSelection(.enabled)
+            GeometryReader { geometry in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        if let original = editor.original {
+                            photoToolbar
+                            comparison(original, available: geometry.size)
+                            previewControls
+                            recipeControls
+                        } else {
+                            emptyState
+                            sampleGallery
                         }
-                        DisclosureGroup("手动精调") {
-                            VStack(spacing:18) {
-                                ForEach(tools, id:\.1) { tool in
-                                    adjustment(tool.0, value:Binding(get:{ editor.plan.basic[tool.1] ?? 0 },
-                                        set:{ editor.plan.basic[tool.1] = $0 }), limits:ColorPlan.limits[tool.1]!)
-                                }
-                                rgbControls
-                            }.padding(.top)
-                        }
-                    } else if !editor.busy {
-                        VStack(spacing:14) {
-                            Image(systemName:"camera.aperture").font(.system(size:56))
-                            Text("让照片呈现自己的色彩").font(.title2)
-                            Text("选择照片或内置样片，体验 AI 与手动调色").font(.caption)
-                        }.frame(maxWidth:.infinity).padding(.vertical,50)
                     }
-                    if editor.busy { ProgressView(editor.status); Button("取消") { editor.cancel() } }
-                    if let error = editor.error { Text(error).foregroundColor(.red) }
-                    Text("点击 AI 调色才会发送缩略图给 Gemini；手动调色在本机完成。密钥只保留在本页内存中。").font(.caption).foregroundColor(.secondary)
-                }.padding(20)
+                    .frame(maxWidth: 720)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+                    .frame(maxWidth: .infinity)
+                }
             }
-            .background(Color(red:0.063,green:0.067,blue:0.075))
-            .navigationTitle("色彩工作室").navigationBarTitleDisplayMode(.inline)
+            .background(StudioStyle.background)
+            .navigationTitle("色彩工作室")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement:.navigationBarLeading) { Button("完成") { dismiss() } }
-                ToolbarItem(placement:.navigationBarTrailing) { Button("AI 设置") { showSettings = true }.disabled(editor.busy) }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark").font(.body.weight(.medium)).frame(width: 44, height: 44)
+                    }.accessibilityLabel("关闭色彩工作室")
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button { sheet = .settings } label: {
+                        Image(systemName: "slider.horizontal.3").frame(width: 44, height: 44)
+                    }.accessibilityLabel("AI 设置")
+                }
             }
-            .safeAreaInset(edge:.bottom) {
-                HStack {
-                    Button("AI 调色") { if editor.key.isEmpty { showSettings = true } else { editor.analyze() } }
-                        .buttonStyle(.borderedProminent).disabled(editor.original == nil || editor.busy)
-                    Button("保存副本") { editor.save() }.buttonStyle(.bordered).disabled(!editor.ready)
-                }.frame(maxWidth:.infinity).padding().background(.ultraThinMaterial)
+            .safeAreaInset(edge: .bottom, spacing: 0) { actionBar }
+            .sheet(item: $sheet) { destination in
+                switch destination {
+                case .settings:
+                    StudioSettingsView(key: $editor.key, model: $editor.model)
+                case .samples:
+                    NavigationStack {
+                        ScrollView { sampleGallery.padding(20) }
+                            .background(StudioStyle.background)
+                            .navigationTitle("挑一张样片")
+                            .navigationBarTitleDisplayMode(.inline)
+                            .toolbar {
+                                ToolbarItem(placement: .confirmationAction) {
+                                    Button("完成") { sheet = nil }
+                                }
+                            }
+                    }
+                }
             }
-            .sheet(isPresented:$showSettings) { settings }
-            .onChange(of:selection) { item in if let item = item { editor.load(item) } }
-            .task { if let data = initialData, editor.original == nil { editor.load(data) } }
+            .onChange(of: selection) { item in
+                if let item = item { editor.load(item) }
+            }
+            .task {
+                if let data = initialData, editor.original == nil { editor.load(data) }
+            }
             .onDisappear { editor.cancel() }
-        }.tint(gold).preferredColorScheme(.dark)
+        }
+        .tint(StudioStyle.gold)
+        .preferredColorScheme(.dark)
     }
-    private var samples: some View {
-        ScrollView(.horizontal,showsIndicators:false) {
-            HStack {
-                ForEach(["lake","forest","coffee","city"],id:\.self) { name in
+
+    private var photoToolbar: some View {
+        HStack {
+            Text("你的影像").font(.headline)
+            Spacer()
+            PhotosPicker(selection: $selection, matching: .images) {
+                Label("换照片", systemImage: "photo.on.rectangle")
+                    .font(.subheadline).padding(.vertical, 10)
+            }.disabled(editor.busy)
+            Button { sheet = .samples } label: {
+                Image(systemName: "square.grid.2x2").frame(width: 44, height: 44)
+            }.disabled(editor.busy).accessibilityLabel("选择内置样片")
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 18) {
+            Image(systemName: "camera.filters")
+                .font(.system(size: 42, weight: .light)).foregroundColor(StudioStyle.gold)
+                .frame(width: 88, height: 88)
+                .background(StudioStyle.gold.opacity(0.08), in: RoundedRectangle(cornerRadius: 28))
+            Text("让光影，有自己的色彩").font(.title2.weight(.semibold))
+            Text("从一张照片开始，探索 AI 灵感与手动调色。")
+                .font(.subheadline).foregroundColor(.secondary).multilineTextAlignment(.center)
+            PhotosPicker(selection: $selection, matching: .images) {
+                Label("从相册选择", systemImage: "plus")
+                    .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 15)
+            }.buttonStyle(StudioButtonStyle(primary: true)).disabled(editor.busy)
+        }.padding(.vertical, 24)
+    }
+
+    private var sampleGallery: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("先用样片试一试").font(.headline)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), spacing: 12)], spacing: 12) {
+                ForEach(StudioSample.all) { sample in
                     Button {
-                        if let url = Bundle.main.url(forResource:"sample_"+name,withExtension:"jpg"), let data = try? Data(contentsOf:url) { editor.load(data) }
+                        guard let url = sample.url, let data = try? Data(contentsOf: url) else {
+                            editor.error = "样片读取失败，请从相册选择照片。"
+                            return
+                        }
+                        editor.load(data)
+                        sheet = nil
                     } label: {
-                        Image("sample_"+name).resizable().scaledToFill().frame(width:92,height:68).clipped().cornerRadius(12)
-                    }.disabled(editor.busy).accessibilityLabel("参考照片 "+name)
+                        ZStack(alignment: .bottomLeading) {
+                            if let image = sample.image {
+                                GeometryReader { geometry in
+                                    Image(uiImage: image).resizable().scaledToFill()
+                                        .frame(width: geometry.size.width, height: 128).clipped()
+                                }
+                            } else {
+                                Rectangle().fill(StudioStyle.surface).frame(height: 128)
+                                    .overlay(Image(systemName: "photo"))
+                            }
+                            LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .center, endPoint: .bottom)
+                            Text(sample.title).font(.subheadline.weight(.medium)).padding(12)
+                        }
+                        .frame(height: 128).clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .foregroundColor(.white)
+                    }.buttonStyle(.plain).disabled(editor.busy)
+                        .accessibilityLabel("使用" + sample.title + "样片")
+                }
+            }
+            DisclosureGroup("摄影作品与来源") {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(StudioSample.all) { sample in
+                        Link(sample.credit + " · " + sample.title, destination: sample.creditURL)
+                    }
+                    Link("Pexels 许可", destination: URL(string: "https://www.pexels.com/license/")!)
+                }.frame(maxWidth: .infinity, alignment: .leading).padding(.top, 12)
+            }.font(.caption).foregroundColor(.secondary)
+        }
+    }
+
+    private func comparison(_ original: UIImage, available: CGSize) -> some View {
+        let ratio = original.size.width / max(original.size.height, 1)
+        let width = min(max(available.width - 40, 1), 720)
+        let height = min(width / ratio, max(220, min(available.height * 0.62, 520)))
+        return ZStack {
+            RoundedRectangle(cornerRadius: 20).fill(Color.black)
+            Image(uiImage: mode == .edited ? (editor.preview ?? original) : original)
+                .resizable().scaledToFit()
+                .overlay {
+                    if mode == .comparison {
+                        GeometryReader { geometry in
+                            Image(uiImage: editor.preview ?? original).resizable().scaledToFit()
+                                .mask(alignment: .trailing) {
+                                    Rectangle().frame(width: geometry.size.width * (1 - divider))
+                                }
+                            Rectangle().fill(.white.opacity(0.9)).frame(width: 1)
+                                .offset(x: geometry.size.width * divider)
+                        }
+                    }
+                }
+                .frame(width: min(width, height * ratio), height: height)
+        }
+        .frame(height: height)
+        .overlay(alignment: .top) {
+            HStack {
+                if mode != .edited { photoBadge("原图") }
+                Spacer()
+                if mode != .original { photoBadge("调色后") }
+            }.padding(12)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .accessibilityLabel("照片预览，" + mode.rawValue)
+    }
+
+    private func photoBadge(_ text: String) -> some View {
+        Text(text).font(.caption.weight(.medium)).foregroundColor(.white)
+            .padding(.horizontal, 10).padding(.vertical, 5)
+            .background(.black.opacity(0.5), in: Capsule())
+    }
+
+    private var previewControls: some View {
+        VStack(spacing: 10) {
+            Picker("预览方式", selection: $mode) {
+                ForEach(PreviewMode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+            }.pickerStyle(.segmented)
+            if mode == .comparison {
+                HStack(spacing: 12) {
+                    Image(systemName: "arrow.left.and.right").foregroundColor(.secondary)
+                    Slider(value: $divider, in: 0...1).accessibilityLabel("前后对比分界")
                 }
             }
         }
     }
-    private func comparison(_ original: UIImage) -> some View {
-        Image(uiImage:mode == "调色后" ? (editor.preview ?? original) : original)
-            .resizable().scaledToFit()
-            .overlay {
-                if mode == "左右对比" {
-                    GeometryReader { geometry in
-                        Image(uiImage:editor.preview ?? original).resizable().scaledToFit()
-                            .mask(alignment:.trailing) { Rectangle().frame(width:geometry.size.width*(1-divider)) }
-                        Rectangle().fill(.white).frame(width:2).offset(x:geometry.size.width*divider)
-                        HStack { Text("原图"); Spacer(); Text("调色后") }.font(.caption).padding(8).foregroundColor(.white)
+
+    private var recipeControls: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                Label("调色方案", systemImage: "camera.filters").font(.headline)
+                Spacer()
+                Button { editor.undo() } label: { Image(systemName: "arrow.uturn.backward").frame(width: 44, height: 44) }
+                    .disabled(editor.history.isEmpty || editor.busy).accessibilityLabel("撤销调整")
+                Button("重置") { editor.reset() }.font(.subheadline).disabled(editor.busy)
+            }
+            if !editor.plan.scene.isEmpty { Text(editor.plan.scene).font(.subheadline.weight(.medium)) }
+            if !editor.plan.intent.isEmpty { Text(editor.plan.intent).font(.subheadline).foregroundColor(.secondary) }
+            adjustment("效果强度", value: $editor.strength, limits: 0...1, percentage: true)
+            DisclosureGroup("手动精调") {
+                VStack(spacing: 20) {
+                    ForEach(tools, id: \.1) { tool in
+                        adjustment(tool.0, value: Binding(get: { editor.plan.basic[tool.1] ?? 0 },
+                            set: { editor.plan.basic[tool.1] = $0 }), limits: ColorPlan.limits[tool.1]!)
                     }
-                }
-            }.clipShape(RoundedRectangle(cornerRadius:18))
+                    rgbControls
+                }.padding(.top, 20)
+            }
+            if editor.lastAI != nil {
+                Button("恢复 AI 方案") { editor.restoreAI() }.disabled(editor.busy)
+            }
+            DisclosureGroup("调整详情") {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(editor.difference).foregroundColor(.secondary)
+                    Text(editor.plan.summary).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                }.frame(maxWidth: .infinity, alignment: .leading).padding(.top, 12)
+            }.font(.subheadline)
+        }
+        .padding(18)
+        .background(StudioStyle.surface, in: RoundedRectangle(cornerRadius: 20))
     }
-    private func adjustment(_ title: String, value: Binding<Double>, limits: ClosedRange<Double>) -> some View {
-        VStack {
-            HStack { Text(title); Spacer(); Text(String(format:"%+.4f",value.wrappedValue)).monospacedDigit().foregroundColor(gold) }
-            Slider(value:value,in:limits,onEditingChanged:{ editing in if editing { editor.checkpoint() } else { editor.render() } })
-                .accessibilityLabel(title)
+
+    private var actionBar: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let error = editor.error {
+                Label(error, systemImage: "exclamationmark.circle").foregroundColor(.orange).font(.caption)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            HStack(spacing: 10) {
+                if editor.busy { ProgressView().tint(StudioStyle.gold) }
+                Text(editor.status).font(.caption).foregroundColor(.secondary)
+                    .accessibilityIdentifier("colorStatus")
+                Spacer(minLength: 0)
+                if editor.busy {
+                    Button("取消") { editor.cancel() }.font(.caption.weight(.semibold))
+                } else if editor.original != nil && !editor.ready {
+                    Button("重试渲染") { editor.render() }.font(.caption.weight(.semibold))
+                }
+            }
+            if editor.original != nil {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 12) { primaryActions }
+                    VStack(spacing: 10) { primaryActions }
+                }
+            }
+        }
+        .frame(maxWidth: 720).padding(.horizontal, 20).padding(.vertical, 14)
+        .frame(maxWidth: .infinity)
+        .background(StudioStyle.background)
+        .overlay(alignment: .top) { Rectangle().fill(.white.opacity(0.08)).frame(height: 1) }
+    }
+
+    @ViewBuilder private var primaryActions: some View {
+        Button {
+            if editor.key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { sheet = .settings }
+            else { editor.analyze() }
+        } label: {
+            Label("AI 调色", systemImage: "sparkles").font(.headline)
+                .fixedSize(horizontal: true, vertical: false).frame(maxWidth: .infinity).padding(.vertical, 14)
+        }.buttonStyle(StudioButtonStyle(primary: true)).disabled(editor.busy)
+        Button { editor.save() } label: {
+            Label("保存副本", systemImage: "square.and.arrow.down").font(.headline)
+                .fixedSize(horizontal: true, vertical: false).frame(maxWidth: .infinity).padding(.vertical, 14)
+        }.buttonStyle(StudioButtonStyle(primary: false)).disabled(!editor.ready)
+    }
+
+    private func adjustment(_ title: String, value: Binding<Double>, limits: ClosedRange<Double>, percentage: Bool = false) -> some View {
+        VStack(spacing: 6) {
+            HStack {
+                Text(title).font(.subheadline)
+                Spacer()
+                Text(percentage ? "\(Int(value.wrappedValue * 100))%" : String(format: "%+.2f", value.wrappedValue))
+                    .font(.caption.monospacedDigit()).foregroundColor(StudioStyle.gold)
+            }
+            Slider(value: value, in: limits, onEditingChanged: { editing in
+                if editing { editor.checkpoint() } else { editor.render() }
+            }).accessibilityLabel(title)
         }.disabled(editor.busy)
     }
+
     private var rgbControls: some View {
-        VStack(alignment:.leading,spacing:16) {
+        VStack(alignment: .leading, spacing: 16) {
             Text("RGB 校色").font(.headline)
-            Text("RGB 为零不代表其他调色未生效，请查看实际调整参数。").font(.caption).foregroundColor(.secondary)
-            Picker("调整方式",selection:Binding(get:{ editor.plan.complement },set:{ editor.checkpoint(); editor.plan.complement = $0; editor.render() })) {
-                Text("直接调原色").tag(false); Text("反向调互补色").tag(true)
+            Picker("调整方式", selection: Binding(get: { editor.plan.complement }, set: {
+                editor.checkpoint(); editor.plan.complement = $0; editor.render()
+            })) {
+                Text("原色").tag(false); Text("互补色").tag(true)
             }.pickerStyle(.segmented)
-            Picker("明暗范围",selection:$range) {
-                ForEach(0..<4) { i in Text(["整体","阴影","中间调","高光"][i]).tag(i) }
+            Picker("明暗范围", selection: $range) {
+                ForEach(0..<4) { i in Text(["整体", "阴影", "中间调", "高光"][i]).tag(i) }
             }.pickerStyle(.segmented)
             ForEach(0..<3) { i in
-                adjustment(["青 ← R → 红","品红 ← G → 绿","黄 ← B → 蓝"][i],
-                    value:Binding(get:{ editor.plan.rgb[range][i] },set:{ editor.plan.rgb[range][i] = $0 }),limits: -0.08...0.08)
+                adjustment(["青 — 红", "品红 — 绿", "黄 — 蓝"][i],
+                    value: Binding(get: { editor.plan.rgb[range][i] }, set: { editor.plan.rgb[range][i] = $0 }), limits: -0.08...0.08)
             }
         }.disabled(editor.busy)
     }
-    private var settings: some View {
+}
+
+private struct StudioButtonStyle: ButtonStyle {
+    var primary: Bool
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundColor(isEnabled ? (primary ? StudioStyle.background : StudioStyle.gold) : Color.white.opacity(0.45))
+            .background(isEnabled && primary ? StudioStyle.gold : StudioStyle.surface, in: RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(.white.opacity(primary ? 0 : 0.1)))
+            .opacity(configuration.isPressed ? 0.75 : 1)
+    }
+}
+
+private struct StudioSample: Identifiable {
+    let id: String
+    let title: String
+    let credit: String
+    let creditURL: URL
+    var url: URL? { Bundle.main.url(forResource: "sample_" + id, withExtension: "jpg") }
+    // Decode the bundled JPEG once, instead of asking the asset catalog for a missing named image.
+    let image: UIImage?
+
+    init(_ id: String, _ title: String, _ credit: String, _ link: String) {
+        self.id = id; self.title = title; self.credit = credit
+        creditURL = URL(string: link)!
+        image = Bundle.main.url(forResource: "sample_" + id, withExtension: "jpg")
+            .flatMap { UIImage(contentsOfFile: $0.path) }
+    }
+
+    static let all = [
+        StudioSample("lake", "湖泊", "Kata", "https://www.pexels.com/photo/mountain-landscape-with-lake-14958494/"),
+        StudioSample("forest", "森林", "Aysegul Aytoren", "https://www.pexels.com/photo/a-forest-with-mossy-rocks-14755971/"),
+        StudioSample("coffee", "咖啡", "Negative Space", "https://www.pexels.com/photo/caffeine-coffee-cup-mug-134577/"),
+        StudioSample("city", "城市", "Mo Eid", "https://www.pexels.com/photo/drone-shot-of-city-with-skyscrapers-17910086/")
+    ]
+}
+
+private struct StudioSettingsView: View {
+    @Binding var key: String
+    @Binding var model: String
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
         NavigationStack {
             Form {
-                SecureField("Gemini API Key",text:$editor.key).textInputAutocapitalization(.never).autocorrectionDisabled()
-                TextField("模型",text:$editor.model).textInputAutocapitalization(.never).autocorrectionDisabled()
-                Text("使用自己的密钥。关闭调色页面后清除，不写入偏好设置或备份。")
-                Button("清除密钥",role:.destructive) { editor.key = "" }
-            }.navigationTitle("AI 设置").toolbar { ToolbarItem(placement:.confirmationAction) { Button("完成") { showSettings = false } } }
-        }
+                Section("连接 Gemini") {
+                    SecureField("Gemini API Key", text: $key)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    TextField("模型", text: $model)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                }
+                Section {
+                    Text("点击 AI 调色时，会将照片缩略图发送给 Gemini。手动调色在本机完成。")
+                    Text("密钥只保留在当前编辑器内存中，关闭编辑器后清除。")
+                }
+                Section { Button("清除密钥", role: .destructive) { key = "" } }
+            }
+            .navigationTitle("AI 设置").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } } }
+        }.tint(StudioStyle.gold).preferredColorScheme(.dark)
+    }
+}
+
+struct ColorEditorView_Previews: PreviewProvider {
+    static var previews: some View {
+        ColorEditorView().previewDisplayName("选择照片")
+        ColorEditorView(initialData: Bundle.main.url(forResource: "sample_city", withExtension: "jpg")
+            .flatMap { try? Data(contentsOf: $0) }).previewDisplayName("照片编辑")
     }
 }
 
