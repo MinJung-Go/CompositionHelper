@@ -39,6 +39,10 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.currentCoroutineContext
 
 @Composable
 fun ColorEditorScreen(uri: Uri, onBack: () -> Unit) {
@@ -69,12 +73,15 @@ private data class EditSnapshot(val recipe: String, val strength: Float)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ColorEditorContent(uri: Uri, onBack: () -> Unit,
-    analyzePhoto: suspend (Bitmap, String, String) -> ColorPlan = GeminiColorClient::analyze,
+    analyzePhoto: suspend (Bitmap, String, String, suspend (ColorPlan) -> Unit) -> ColorPlan = GeminiColorClient::analyze,
     onChoosePhoto: () -> Unit = onBack, onOpenSamples: () -> Unit = onBack
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var source by remember { mutableStateOf<Bitmap?>(null) }
+    var transientPreview by remember { mutableStateOf<Bitmap?>(null) }
+    var streamStatus by remember { mutableStateOf("AI 正在分析光线与色彩…") }
+    var timing by remember { mutableStateOf("") }
     var preview by remember { mutableStateOf<Bitmap?>(null) }
     var offline by remember { mutableStateOf<ColorSuggestion?>(null) }
     var recipe by rememberSaveable { mutableStateOf(ColorPlanCodec.encode(ColorPlan())) }
@@ -134,7 +141,8 @@ internal fun ColorEditorContent(uri: Uri, onBack: () -> Unit,
         } catch (e: OutOfMemoryError) { loadError = "图片过大，内存不足，请选择较小图片"
         } finally { loading = false }
     }
-    LaunchedEffect(source, recipe, strength, renderRetry) {
+    LaunchedEffect(source, recipe, strength, renderRetry, analyzing) {
+        if (analyzing || previewReady) return@LaunchedEffect
         val original = source ?: return@LaunchedEffect
         val requestedRecipe = recipe
         val requestedStrength = strength
@@ -160,16 +168,55 @@ internal fun ColorEditorContent(uri: Uri, onBack: () -> Unit,
         analyzing = true; actionError = null; notice = null
         val apiKey = GeminiColorSession.apiKey
         val model = GeminiColorSession.model
+        streamStatus = "正在发送照片并等待首个结果…"; timing = ""
         aiJob = scope.launch {
+            val started = System.nanoTime()
+            var firstParameters: Double? = null
+            var firstPreview: Double? = null
+            var lastFrame = 0L
+            var small: Bitmap? = null
             try {
-                val result = analyzePhoto(original, apiKey, model)
+                small = withContext(Dispatchers.Default) {
+                    val ratio = minOf(1f, 640f / maxOf(original.width, original.height))
+                    Bitmap.createScaledBitmap(original, maxOf(1, (original.width * ratio).toInt()), maxOf(1, (original.height * ratio).toInt()), true)
+                }
+                val result = analyzePhoto(original, apiKey, model) { partial ->
+                    withContext(Dispatchers.Main) {
+                        currentCoroutineContext().ensureActive()
+                        val now = System.nanoTime()
+                        if (firstParameters == null) firstParameters = (now - started) / 1e9
+                        if (now - lastFrame >= 500_000_000L) {
+                            lastFrame = now
+                            val rendered = ColorPhotoStore.render(small!!, partial, 1f)
+                            currentCoroutineContext().ensureActive()
+                            transientPreview = rendered
+                            if (firstPreview == null) firstPreview = (System.nanoTime() - started) / 1e9
+                            streamStatus = "临时预览 · AI 仍在完善调色…"
+                        }
+                    }
+                }
+                currentCoroutineContext().ensureActive()
+                timing = String.format(java.util.Locale.ROOT, "有效参数 %s · 首次预览 %s · 完整响应 %.1f 秒",
+                    firstParameters?.let { "%.1f 秒".format(java.util.Locale.ROOT, it) } ?: "随完整响应到达",
+                    firstPreview?.let { "%.1f 秒".format(java.util.Locale.ROOT, it) } ?: "未生成临时预览",
+                    (System.nanoTime() - started) / 1e9)
+                streamStatus = "完整方案已收到，正在渲染…"
+                val renderStarted = System.nanoTime()
+                val finalImage = ColorPhotoStore.renderPreview(original, result, 1f)
+                currentCoroutineContext().ensureActive()
                 applyPlan(result)
+                preview = finalImage.bitmap; renderedRecipe = recipe; renderedStrength = 1f
+                difference = String.format(java.util.Locale.ROOT, "预览变化像素 %.1f%% · 平均通道差 %.2f / 255", finalImage.changedPercent, finalImage.meanDifference)
+                timing += String.format(java.util.Locale.ROOT, " · 最终渲染 %.1f 秒", (System.nanoTime() - renderStarted) / 1e9)
                 lastAi = recipe
-                notice = "AI 方案已收到，正在渲染…"
+                notice = if (finalImage.changedPercent == 0f) "渲染完成，当前输出与原图相同" else "调色已渲染完成"
             } catch (e: CancellationException) { throw e
             } catch (e: Exception) { actionError = e.message ?: "AI 分析失败，请重试"
             } catch (e: OutOfMemoryError) { actionError = "图片分析内存不足，请重试"
-            } finally { analyzing = false }
+            } finally {
+                transientPreview = null; analyzing = false
+                small?.takeIf { it !== original }?.recycle()
+            }
         }
     }
     fun saveCopy() {
@@ -194,7 +241,7 @@ internal fun ColorEditorContent(uri: Uri, onBack: () -> Unit,
     val busy = loading || analyzing || saving
     val status = when {
         loading -> "正在打开照片…"
-        analyzing -> "AI 正在分析光线与色彩…"
+        analyzing -> streamStatus
         saving -> "正在导出原尺寸副本…"
         loadError != null -> "照片未能打开"
         renderError != null || actionError != null -> "操作失败，可重试"
@@ -268,7 +315,7 @@ internal fun ColorEditorContent(uri: Uri, onBack: () -> Unit,
                             }
                             IconButton(onClick = onOpenSamples, enabled = !busy) { Icon(Icons.Default.GridView, "选择内置样片") }
                         }
-                        StudioPhotoPreview(original, preview ?: original, comparison, divider,
+                        StudioPhotoPreview(original, transientPreview ?: preview ?: original, comparison, divider,
                             maxHeight = (viewportHeight * .62f).coerceIn(if (largeType) 140.dp else 220.dp, 520.dp))
                         Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surface).padding(4.dp)) {
                             listOf("左右对比", "调色后", "原图").forEach { mode ->
@@ -317,6 +364,7 @@ internal fun ColorEditorContent(uri: Uri, onBack: () -> Unit,
                                 if (lastAi != null) TextButton(onClick = { lastAi?.let { applyPlan(ColorPlanCodec.decode(it)) } }, enabled = enabled) { Text("恢复 AI 方案") }
                                 TextButton(onClick = { details = !details }) { Text(if (details) "调整详情 −" else "调整详情") }
                                 if (details) {
+                                    if (timing.isNotEmpty()) Text(timing, style = MaterialTheme.typography.bodySmall)
                                     Text(difference, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     androidx.compose.foundation.text.selection.SelectionContainer {
                                         Text(recipe, style = MaterialTheme.typography.bodySmall)

@@ -37,7 +37,7 @@ class ColorEditorTest {
         compose.waitUntil(15000) { compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
     }
     private fun waitReady() {
-        compose.waitUntil(15000) { compose.onAllNodes(hasText("AI 调色") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15000) { compose.onAllNodes(hasText("保存副本") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
     }
     private fun click(text: String) {
         val node = compose.onNodeWithText(text)
@@ -47,7 +47,7 @@ class ColorEditorTest {
     @Test fun aiRecipeSurvivesRestorationAndSupportsResetUndo() {
         val restoration = StateRestorationTester(compose)
         var calls = 0
-        restoration.setContent { MaterialTheme { ColorEditorContent(uri, {}, { _, _, _ -> calls++; aiPlan }) } }
+        restoration.setContent { MaterialTheme { ColorEditorContent(uri, {}, { _, _, _, _ -> calls++; aiPlan }) } }
         waitReady()
         compose.onNodeWithContentDescription("原图").assertExists()
         compose.onNodeWithContentDescription("调色后").assertExists()
@@ -61,7 +61,7 @@ class ColorEditorTest {
     }
     @Test fun failedReanalysisKeepsPreviousRecipe() {
         var calls = 0
-        compose.setContent { MaterialTheme { ColorEditorContent(uri, {}, { _, _, _ ->
+        compose.setContent { MaterialTheme { ColorEditorContent(uri, {}, { _, _, _, _ ->
             if (++calls == 1) aiPlan else throw IllegalStateException("调用额度不足")
         }) } }
         waitReady()
@@ -70,17 +70,43 @@ class ColorEditorTest {
         compose.onNodeWithText("测试湖景").assertExists()
     }
     @Test fun cancelAnalysisKeepsOriginalAndAllowsRetry() {
-        compose.setContent { MaterialTheme { ColorEditorContent(uri, {}, { _, _, _ -> awaitCancellation() }) } }
+        compose.setContent { MaterialTheme { ColorEditorContent(uri, {}, { _, _, _, _ -> awaitCancellation() }) } }
         waitReady()
         click("AI 调色"); waitForText("取消分析"); click("取消分析")
         compose.onNodeWithText("AI 调色").assertIsEnabled()
         compose.onAllNodesWithText("操作已取消").onFirst().assertExists()
         compose.onNodeWithText("取消分析").assertDoesNotExist()
     }
+    @Test fun streamedPreviewCannotBeSavedAndCancelKeepsOriginal() {
+        compose.setContent { MaterialTheme { ColorEditorContent(uri, {}, { _, _, _, emit ->
+            emit(aiPlan); awaitCancellation()
+        }) } }
+        waitReady(); click("AI 调色")
+        waitForText("临时预览 · AI 仍在完善调色…")
+        compose.onNodeWithText("保存副本").assertIsNotEnabled()
+        compose.onNodeWithText("测试湖景").assertDoesNotExist()
+        click("取消分析")
+        compose.onNodeWithText("保存副本").assertIsEnabled()
+        compose.onNodeWithText("测试湖景").assertDoesNotExist()
+    }
+    @Test fun failedStreamRestoresCommittedRecipe() {
+        var calls = 0
+        compose.setContent { MaterialTheme { ColorEditorContent(uri, {}, { _, _, _, emit ->
+            if (++calls == 1) aiPlan else {
+                emit(ColorPlan(basic = ColorAdjustment(exposure = .4f), scene = "临时方案"))
+                throw IllegalStateException("流连接中断")
+            }
+        }) } }
+        waitReady(); click("AI 调色"); waitForText("测试湖景")
+        click("AI 调色"); waitForText("流连接中断")
+        compose.onNodeWithText("测试湖景").assertExists()
+        compose.onNodeWithText("临时方案").assertDoesNotExist()
+        compose.onNodeWithText("保存副本").assertIsEnabled()
+    }
     @Test fun missingCredentialOpensSettingsWithoutUploading() {
         GeminiColorSession.apiKey = ""
         var called = false
-        compose.setContent { MaterialTheme { ColorEditorContent(uri, {}, { _, _, _ -> called = true; aiPlan }) } }
+        compose.setContent { MaterialTheme { ColorEditorContent(uri, {}, { _, _, _, _ -> called = true; aiPlan }) } }
         waitReady()
         click("AI 调色")
         compose.onNodeWithText("Gemini 调色设置").assertExists()

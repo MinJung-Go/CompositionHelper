@@ -35,8 +35,8 @@ object GeminiColorProtocol {
         Analyze this photograph as a professional Photoshop colorist. Produce a natural, restrained edit
         appropriate to its actual scene, subjects and lighting. Preserve skin, text and realistic water/foliage.
         No masks or spatial selections are available. Similar-colored objects are affected together.
-        Return ONE JSON object with scene and intent (short Chinese descriptions), basic, curve_y, hsl,
-        color_balance, rgb_correction. Describe only adjustments the engine can actually perform. No markdown.
+        Return ONE JSON object in this order: basic, curve_y, hsl, color_balance, rgb_correction,
+        scene and intent (short Chinese descriptions). Emit basic first so a preview can render early. Describe only adjustments the engine can actually perform. No markdown.
         Processing order, on gamma-encoded sRGB [0,1]:
         1) basic: exposure [-0.5,0.5] stops; contrast [-0.2,0.2]; shadows [-0.2,0.25];
         highlights [-0.25,0.15]; temperature [-0.05,0.05]; tint [-0.04,0.04]; saturation [-0.25,0.3].
