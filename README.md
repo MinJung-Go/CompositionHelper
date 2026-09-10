@@ -230,3 +230,10 @@ A: 确保设备已安装 Google Play 服务并已授予相机权限。
 Made by [MinJung-Go](https://github.com/MinJung-Go)
 
 </div>
+
+## 检查清单与验收
+
+- [双端功能统一与开发测试验收清单](docs/CROSS_PLATFORM_ACCEPTANCE.md)
+- [应用内拍摄检查清单使用说明](docs/SHOOTING_CHECKLIST.md)
+
+应用内入口：相机顶部的清单图标。由使用者逐项确认，支持问题标记、备注、本机进度保存与导出记录。

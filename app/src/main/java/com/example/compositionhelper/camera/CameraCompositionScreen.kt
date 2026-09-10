@@ -15,6 +15,10 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Checklist
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.example.compositionhelper.checklist.ShootingChecklistScreen
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Visibility
@@ -60,6 +64,13 @@ fun CameraCompositionScreen(
     // 模式与 UI 控制
     var isSmartMode by remember { mutableStateOf(false) }
     var showControls by remember { mutableStateOf(true) }
+    var showChecklist by remember { mutableStateOf(false) }
+
+    if (showChecklist) {
+        Dialog(onDismissRequest = { showChecklist = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            ShootingChecklistScreen(onClose = { showChecklist = false })
+        }
+    }
 
     // 分析结果状态
     var detectedSubjects by remember { mutableStateOf(emptyList<DetectedSubject>()) }
@@ -262,6 +273,10 @@ fun CameraCompositionScreen(
 
                     Spacer(modifier = Modifier.weight(1f))
 
+                    IconButton(onClick = { showChecklist = true }) {
+                        Icon(Icons.Default.Checklist, "拍摄检查清单", tint = Color.White)
+                    }
+
                     // Manual / Smart 切换
                     Surface(
                         shape = RoundedCornerShape(20.dp),
@@ -359,6 +374,7 @@ fun CameraCompositionScreen(
                 Text(cameraError!!, color = Color.White)
                 TextButton(onClick = { cameraRetry++ }) { Text("重试相机") }
                 TextButton(onClick = onOpenSamples) { Text("使用参考照片") }
+                TextButton(onClick = { showChecklist = true }) { Text("拍摄检查清单") }
             }
         }
         if (!hasCameraPermission) {
@@ -387,6 +403,7 @@ fun CameraCompositionScreen(
                         Text("重新请求权限")
                     }
                     TextButton(onClick = onOpenSamples) { Text("先用内置参考照片", color = Color.White) }
+                    TextButton(onClick = { showChecklist = true }) { Text("拍摄检查清单", color = Color.White) }
                 }
             }
         }
