@@ -11,6 +11,8 @@
 
 ## 开发与测试
 
+- [AI 流式调色计划、实现与验收](AI_STREAMING.md)。
+
 - [双端架构](ARCHITECTURE.md)：模块、数据流、状态与存储边界。
 - [UI 与交互约定](DESIGN_SYSTEM.md)：统一目标及当前差异。
 - [测试命令与环境](TESTING.md)、[开发/真人验收表](CROSS_PLATFORM_ACCEPTANCE.md)。
