@@ -11,7 +11,7 @@ actor ColorPhotoService {
         let changedPercent: Double
         let meanDifference: Double
     }
-    func decode(_ data: Data, preview: Bool) throws -> CGImage {
+    func decode(_ data: Data, preview: Bool, previewLimit: Int = 1400) throws -> CGImage {
         guard let source = CGImageSourceCreateWithData(data as CFData, [kCGImageSourceShouldCache:false] as CFDictionary),
               let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
               let width = properties[kCGImagePropertyPixelWidth] as? Int,
@@ -23,13 +23,13 @@ actor ColorPhotoService {
         }
         let options: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways:true,
             kCGImageSourceCreateThumbnailWithTransform:true,
-            kCGImageSourceThumbnailMaxPixelSize:preview ? 1400 : max(width,height)]
+            kCGImageSourceThumbnailMaxPixelSize:preview ? previewLimit : max(width,height)]
         guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { throw ColorFailure("图片解码失败") }
         return image
     }
-    func render(_ data: Data, plan: ColorPlan, strength: Double, preview: Bool = true) throws -> Rendered {
+    func render(_ data: Data, plan: ColorPlan, strength: Double, preview: Bool = true, previewLimit: Int = 1400) throws -> Rendered {
         try Task.checkCancellation()
-        let image = try decode(data, preview: preview)
+        let image = try decode(data, preview: preview, previewLimit: previewLimit)
         let w = image.width, h = image.height
         var pixels = [UInt8](repeating: 255, count: w*h*4)
         let space = CGColorSpace(name: CGColorSpace.sRGB)!
@@ -85,14 +85,14 @@ private final class ColorNetworkDelegate: NSObject, URLSessionTaskDelegate {
 }
 
 struct GeminiColorService {
-    func analyze(jpeg: Data, key: String, model: String) async throws -> ColorPlan {
+    func analyze(jpeg: Data, key: String, model: String, onPreview: (ColorPlan) async throws -> Void = { _ in }) async throws -> ColorPlan {
         guard !key.isEmpty, key.utf8.allSatisfy({ $0 >= 33 && $0 <= 126 }),
               model.range(of: "^gemini-[A-Za-z0-9._-]{1,80}$", options:.regularExpression) != nil else { throw ColorFailure("请填写有效密钥和模型名称") }
         let config = URLSessionConfiguration.ephemeral
         config.timeoutIntervalForRequest = 150; config.timeoutIntervalForResource = 180
         let session = URLSession(configuration: config, delegate: ColorNetworkDelegate(), delegateQueue: nil)
         defer { session.invalidateAndCancel() }
-        var request = URLRequest(url: URL(string:"https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent")!)
+        var request = URLRequest(url: URL(string:"https://generativelanguage.googleapis.com/v1beta/models/\(model):streamGenerateContent?alt=sse")!)
         request.httpMethod = "POST"
         request.setValue(key, forHTTPHeaderField:"x-goog-api-key")
         request.setValue("application/json", forHTTPHeaderField:"Content-Type")
@@ -102,26 +102,31 @@ struct GeminiColorService {
         ])
         let (bytes, response) = try await session.bytes(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { throw ColorFailure("AI 请求失败（HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0)），请检查密钥、模型或额度") }
-        var data = Data()
+        var decoder = ColorStreamDecoder()
+        var line = Data()
+        var total = 0
         for try await byte in bytes {
-            guard data.count < 256000 else { throw ColorFailure("模型响应过长") }
-            data.append(byte)
+            try Task.checkCancellation()
+            total += 1
+            guard total <= 256000 else { throw ColorFailure("模型响应过长") }
+            if byte == 10 {
+                if line.last == 13 { line.removeLast() }
+                guard let value = String(data: line, encoding: .utf8) else { throw ColorFailure("AI 响应编码无效") }
+                if let partial = try decoder.line(value) { try await onPreview(partial) }
+                line.removeAll(keepingCapacity: true)
+            } else { line.append(byte) }
         }
-        guard let root = try JSONSerialization.jsonObject(with:data) as? [String:Any],
-              let candidate = (root["candidates"] as? [[String:Any]])?.first,
-              candidate["finishReason"] as? String == "STOP",
-              let content = candidate["content"] as? [String:Any],
-              let parts = content["parts"] as? [[String:Any]] else { throw ColorFailure("AI 未返回完整方案，请重试") }
-        let text = parts.filter { ($0["thought"] as? Bool) != true }.compactMap { $0["text"] as? String }.joined()
-        return try ColorPlan.decode(Data(text.utf8))
+        guard line.isEmpty else { throw ColorFailure("AI 响应中断，请重试") }
+        return try decoder.finish()
     }
+
     static let prompt = """
 
         Analyze this photograph as a professional Photoshop colorist. Produce a natural, restrained edit
         appropriate to its actual scene, subjects and lighting. Preserve skin, text and realistic water/foliage.
         No masks or spatial selections are available. Similar-colored objects are affected together.
-        Return ONE JSON object with scene and intent (short Chinese descriptions), basic, curve_y, hsl,
-        color_balance, rgb_correction. Describe only adjustments the engine can actually perform. No markdown.
+        Return ONE JSON object in this order: basic, curve_y, hsl, color_balance, rgb_correction,
+        scene and intent (short Chinese descriptions). Emit basic first so a preview can render early. Describe only adjustments the engine can actually perform. No markdown.
         Processing order, on gamma-encoded sRGB [0,1]:
         1) basic: exposure [-0.5,0.5] stops; contrast [-0.2,0.2]; shadows [-0.2,0.25];
         highlights [-0.25,0.15]; temperature [-0.05,0.05]; tint [-0.04,0.04]; saturation [-0.25,0.3].

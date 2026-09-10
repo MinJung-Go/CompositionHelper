@@ -182,12 +182,12 @@ struct ColorEditorView: View {
         let height = min(width / ratio, max(minimumHeight, min(available.height * 0.62, 520)))
         return ZStack {
             RoundedRectangle(cornerRadius: 20).fill(Color.black)
-            Image(uiImage: mode == .edited ? (editor.preview ?? original) : original)
+            Image(uiImage: mode == .edited ? (editor.transientPreview ?? editor.preview ?? original) : original)
                 .resizable().scaledToFit()
                 .overlay {
                     if mode == .comparison {
                         GeometryReader { geometry in
-                            Image(uiImage: editor.preview ?? original).resizable().scaledToFit()
+                            Image(uiImage: editor.transientPreview ?? editor.preview ?? original).resizable().scaledToFit()
                                 .mask(alignment: .trailing) {
                                     Rectangle().frame(width: geometry.size.width * (1 - divider))
                                 }
@@ -256,6 +256,7 @@ struct ColorEditorView: View {
             }
             DisclosureGroup("调整详情") {
                 VStack(alignment: .leading, spacing: 12) {
+                    if !editor.timing.isEmpty { Text(editor.timing).foregroundColor(.secondary) }
                     Text(editor.difference).foregroundColor(.secondary)
                     Text(editor.plan.summary).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(.top, 12)

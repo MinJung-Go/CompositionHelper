@@ -169,3 +169,76 @@ struct ColorPixelEngine {
         return c
     }
 }
+
+/// Pure SSE/JSON boundary decoder, shared by production and the Linux regression harness.
+struct ColorStreamDecoder {
+    private var event = ""
+    private var text = ""
+    private var total = 0
+    private var stopped = false
+    private var previous: ColorPlan?
+
+    mutating func line(_ line: String) throws -> ColorPlan? {
+        total += line.utf8.count + 1
+        guard total <= 256000 else { throw ColorFailure("模型响应过长") }
+        if !line.isEmpty {
+            if line.hasPrefix("data:") {
+                var value = String(line.dropFirst(5))
+                if value.hasPrefix(" ") { value.removeFirst() }
+                if !event.isEmpty { event += "\n" }
+                event += value
+            }
+            return nil
+        }
+        guard !event.isEmpty else { return nil }
+        let payload = event; event = ""
+        if payload == "[DONE]" { return nil }
+        guard let root = try JSONSerialization.jsonObject(with: Data(payload.utf8)) as? [String: Any],
+              root["error"] == nil,
+              (root["promptFeedback"] as? [String: Any])?["blockReason"] == nil else {
+            throw ColorFailure("AI 响应无效或被拦截")
+        }
+        guard let candidate = (root["candidates"] as? [[String: Any]])?.first else { return nil }
+        guard !stopped, (candidate["index"] as? Int ?? 0) == 0 else { throw ColorFailure("AI 候选结果无效") }
+        let parts = (candidate["content"] as? [String: Any])?["parts"] as? [[String: Any]] ?? []
+        text += parts.filter { ($0["thought"] as? Bool) != true }.compactMap { $0["text"] as? String }.joined()
+        guard text.utf8.count <= 64000 else { throw ColorFailure("调色方案过长") }
+        if let reason = candidate["finishReason"] as? String {
+            guard reason == "STOP" else { throw ColorFailure("AI 未返回完整方案") }
+            stopped = true
+        }
+        guard let prefix = Self.completePrefix(text), let plan = try? ColorPlan.decode(Data(prefix.utf8)), plan != previous else { return nil }
+        previous = plan
+        return plan
+    }
+    func finish() throws -> ColorPlan {
+        guard event.isEmpty, stopped else { throw ColorFailure("AI 响应中断，请重试") }
+        return try ColorPlan.decode(Data(text.utf8))
+    }
+    static func completePrefix(_ text: String) -> String? {
+        guard text.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("{") else { return nil }
+        var depth = 0, quoted = false, escaped = false
+        var end: String.Index?
+        for i in text.indices {
+            let c = text[i]
+            if quoted {
+                if escaped { escaped = false }
+                else if c == "\\" { escaped = true }
+                else if c == "\"" { quoted = false }
+            } else {
+                switch c {
+                case "\"": quoted = true
+                case "{", "[": depth += 1
+                case "}", "]":
+                    depth -= 1
+                    if depth == 0 {
+                        return c == "}" && text[text.index(after: i)...].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? text : nil
+                    }
+                case ",": if depth == 1 { end = i }
+                default: break
+                }
+            }
+        }
+        return end.map { String(text[..<$0]) + "}" }
+    }
+}

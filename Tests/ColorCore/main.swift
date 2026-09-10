@@ -40,4 +40,45 @@ for (index,item) in cases.enumerated() {
         check(zip(actual,expected[i]).allSatisfy { abs($0-$1) <= 1 },"Python parity \(index)/\(i)")
     }
 }
+func streamEvent(_ text: String, finish: String? = nil, thought: Bool = false) throws -> String {
+    var candidate: [String: Any] = ["index": 0, "content": ["parts": [["text": text, "thought": thought]]]]
+    if let finish = finish { candidate["finishReason"] = finish }
+    return String(data: try JSONSerialization.data(withJSONObject: ["candidates": [candidate]]), encoding: .utf8)!
+}
+func send(_ decoder: inout ColorStreamDecoder, _ text: String, finish: String? = nil, thought: Bool = false) throws -> ColorPlan? {
+    _ = try decoder.line("data: " + streamEvent(text, finish: finish, thought: thought))
+    return try decoder.line("")
+}
+func streamRejects(_ operation: () throws -> Void) -> Bool { do { try operation(); return false } catch { return true } }
+var stream = ColorStreamDecoder()
+let incomplete = try send(&stream, #"{"basic":{"exposure":0."#)
+check(incomplete == nil, "no incomplete number preview")
+let partial = try send(&stream, #"2},"curve_y":[0,32"#)
+check(partial?.basic["exposure"] == 0.2, "complete basic arrives before curve")
+check(partial?.curve == ColorPlan.curveX, "unfinished curve not used")
+_ = try send(&stream, ",64,96,128,160,192,224,255]}", finish: "STOP")
+let finalStream = try stream.finish()
+check(finalStream.basic["exposure"] == 0.2, "final stream recipe")
+var unicodeStream = ColorStreamDecoder()
+_ = try send(&unicodeStream, "ignore thought", thought: true)
+let unicodeJSON = #"{"basic":{},"intent":"湖泊，含\"引号\"和}逗号,","hsl":[]}"#
+for c in unicodeJSON { _ = try send(&unicodeStream, String(c)) }
+_ = try send(&unicodeStream, "", finish: "STOP")
+let unicodePlan = try unicodeStream.finish()
+check(unicodePlan.intent == "湖泊，含\"引号\"和}逗号,", "escaped and Unicode chunks")
+check(streamRejects { var d = ColorStreamDecoder(); _ = try send(&d, #"{"basic":{}}"#); _ = try d.finish() }, "missing STOP")
+check(streamRejects { var d = ColorStreamDecoder(); _ = try send(&d, #"{"basic":{},"curve_y":[0"#, finish: "STOP"); _ = try d.finish() }, "truncated JSON with STOP")
+check(streamRejects { var d = ColorStreamDecoder(); _ = try send(&d, "", finish: "MAX_TOKENS") }, "token limit")
+check(streamRejects { var d = ColorStreamDecoder(); _ = try d.line(#"data: {"promptFeedback":{"blockReason":"SAFETY"}}"#); _ = try d.line("") }, "blocked prompt")
+check(streamRejects { var d = ColorStreamDecoder(); _ = try send(&d, #"{"basic":{},"#); _ = try send(&d, #""rgb_correction":{"global":[99,0,0]}}"#, finish: "STOP"); _ = try d.finish() }, "invalid later group")
+check(streamRejects { var d = ColorStreamDecoder(); _ = try d.line("data: " + String(repeating: "x", count: 256001)) }, "bounded payload")
+check(streamRejects { var d = ColorStreamDecoder(); _ = try d.line("data: [DONE]"); _ = try d.line(""); _ = try d.finish() }, "DONE is not STOP")
+check(streamRejects { var d = ColorStreamDecoder(); _ = try d.line("data: " + streamEvent(#"{"basic":{}}"#, finish: "STOP")); _ = try d.finish() }, "unterminated event")
+var multi = ColorStreamDecoder()
+_ = try multi.line(": ping"); _ = try multi.line("")
+let multiPayload = try streamEvent(#"{"basic":{}}"#, finish: "STOP")
+_ = try multi.line("data: {"); _ = try multi.line("data: " + multiPayload.dropFirst()); _ = try multi.line("")
+_ = try multi.line(#"data: {"usageMetadata":{}}"#); _ = try multi.line("")
+let multiResult = try multi.finish()
+check(multiResult == identity, "multiline SSE and trailing usage metadata")
 print("PASS: \(checks) checks (recipe validation, RGB semantics, precision, cross-platform pixels)")
