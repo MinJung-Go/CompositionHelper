@@ -2,6 +2,17 @@
 
 更新：2026-09-10。当前为开发测试交付，没有完成正式商店发布流程。本表区分源码、已生成安装包和已验证设备范围。
 
+## 最新流式版本（2026-09-10）
+
+已推送：Android 源码 `08a7451`，iOS 源码 `a96bfc4`。下面旧记录保留为构建当时的快照，后续状态以本节为准。
+
+| 平台 | 安装包（相对 iOS 工作区） | SHA256 | 验证 |
+|---|---|---|---|
+| Android Debug | `build/streaming/08a7451/CompositionHelper-android.apk` | `57ab859d27150f1270932ceb5933f5715f587650e5c564a18ae2e83419de2829` | 48 项 JVM 通过，lint 0 错误/44 警告，APK 与测试 APK 构建通过；[云端构建](https://github.com/MinJung-Go/CompositionHelper/actions/runs/34434783913)通过 |
+| iOS 未签名 | `build/streaming/a96bfc4/CompositionHelper.ipa` | `0676382c9fbbb1694189393a8866a801c40b74ef02ba5d241d3a33c1fbca9196` | 794 项核心检查通过；[模拟器 CI](https://github.com/MinJung-Go/CompositionHelper/actions/runs/34434712918)、[IPA 构建](https://github.com/MinJung-Go/CompositionHelper/actions/runs/34434712835)通过；ZIP 完整性通过 |
+
+两端均包含美化编辑器、真人拍摄检查清单和流式临时预览。iOS IPA 大小 4,018,969 字节，仍需 iloader 等签名后安装。Android 12 项设备用例仅编译，iOS 截图工作流不覆盖流式交互。真实 Gemini 首预览耗时及取消/断网/保存端到端行为待真机验收，未承诺性能提升倍率。实施计划见 [AI_STREAMING.md](AI_STREAMING.md)。
+
 ## 可追溯基线
 
 | 平台 / 代码提交 | 交付与证据 | 范围 |

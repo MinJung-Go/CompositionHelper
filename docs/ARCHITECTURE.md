@@ -104,3 +104,7 @@ Android：Gradle 单 app 模块，APK 编译、JVM 算法/几何测试、Android
 iOS：Xcode 工程是 App 打包入口；`Package.swift` 不是已经验证的独立分发路径。CI 构建模拟器并截图，运行 Swift 核心检查；另一个 workflow 生成未签名 IPA。Debug 启动参数可以直达编辑器和清单，Release 不启用该检查入口。
 
 [测试指南](TESTING.md)说明如何执行，[开发验收表](CROSS_PLATFORM_ACCEPTANCE.md)记录结论，[版本交付记录](RELEASES.md)将证据绑定到具体提交。截图、编译或算法通过均不能替代真人拍摄验收。
+
+## 流式调色状态补充
+
+双端 AI 客户端现使用 SSE；结构化文本只在顶层参数组闭合后送入原有配方校验器。通过校验的部分方案只更新独立临时预览，不修改正式配方和撤销历史。STOP 与完整配方校验通过后，先生成最终预览，再原子提交配方与可保存状态。取消/失败清除临时预览。请求取消、限流渲染、大小限制及耗时口径见 [流式调色文档](AI_STREAMING.md)。
