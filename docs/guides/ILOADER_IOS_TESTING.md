@@ -6,7 +6,7 @@
 
 从 [iloader 官网](https://iloader.app/) 选择 Windows 桌面 MSI；官网说明它免费、支持导入 IPA，Windows 需要安装 iTunes。沿用已能识别 iPhone 的驱动环境，先确认连接，不把卸载所有 Apple 组件作为固定前置步骤。
 
-准备本项目的 iPhone IPA、数据线、自己的 Apple 账号及验证方式。CompositionHelper 最低 iOS 16；不要把其他安装工具的最低系统要求当成本 App 的要求。包版本和校验值见 [交付记录](RELEASES.md)。
+准备本项目的 iPhone IPA、数据线、自己的 Apple 账号及验证方式。CompositionHelper 最低 iOS 16；不要把其他安装工具的最低系统要求当成本 App 的要求。包版本和校验值见 [交付记录](../testing/RELEASES.md)。
 
 ## 2. 安装逻辑
 
@@ -28,7 +28,7 @@ iloader 官网说明其流程会取得 anisette 信息、完成 Apple 认证、�
 3. 在工具内完成自己的 Apple 账号与双重认证；不要在项目文档或聊天记录中保存密码、验证码。
 4. 使用导入 IPA 的功能选择 `CompositionHelper.ipa`，等待签名与安装结果，保留失败阶段及错误码。
 5. 按 iPhone 实际提示完成信任/开发者模式设置，再启动 App；安装完成提示不能替代启动验证。
-6. 从相机清单入口按项目操作，并填写 [软件验收表](CROSS_PLATFORM_ACCEPTANCE.md)。只有包含新清单的版本才有这个入口；旧 `1d9a096` IPA 没有。
+6. 从相机清单入口按项目操作，并填写 [软件验收表](../testing/CROSS_PLATFORM_ACCEPTANCE.md)。只有包含新清单的版本才有这个入口；旧 `1d9a096` IPA 没有。
 
 这里采用直接安装项目 IPA 的路径。SideStore 是另外一种后续使用方式，它自己的安装/刷新前置要求不能套用为本流程的固定要求；如果选择 SideStore，请遵循它的[官方前置说明](https://docs.sidestore.io/docs/installation/prerequisites)。
 

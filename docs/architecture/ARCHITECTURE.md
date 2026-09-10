@@ -1,6 +1,6 @@
 # CompositionHelper 双端架构
 
-更新：2026-09-10。当前实现基线：Android 流式版本 `08a7451`、iOS 流式版本 `a96bfc4`。第 1–8 节和流式补充描述已实现能力；第 9 节起为商业化目标设计，尚未实现。产品方向见 [产品定位与商业化路线](PRODUCT_STRATEGY.md)；目标规范见 [UI 与交互约定](DESIGN_SYSTEM.md)，缺口见 [已知问题](KNOWN_ISSUES.md)。源码路径按所属分支查看。
+更新：2026-09-10。当前实现基线：Android 流式版本 `08a7451`、iOS 流式版本 `a96bfc4`。第 1–8 节和流式补充描述已实现能力；第 9 节起为商业化目标设计，尚未实现。产品方向见 [产品定位与商业化路线](../product/PRODUCT_STRATEGY.md)；目标规范见 [UI 与交互约定](DESIGN_SYSTEM.md)，缺口见 [已知问题](../testing/KNOWN_ISSUES.md)。源码路径按所属分支查看。
 
 ## 1. 系统边界
 
@@ -87,11 +87,11 @@ Android 使用 IO/Default 调度器读取和计算；iOS 图片工作在 actor�
 
 只有主动点击 AI 才发送重新编码的 JPEG 缩略图及提示词；不附原片 EXIF。网络固定到 Gemini HTTPS 接口，两端均禁止重定向并限制响应大小。API Key 放请求头，不写进安装包、日志或持久化设置。
 
-Android Key 保存在进程级 `GeminiColorSession`；iOS 保存在当前 `ColorEditorModel`。生命周期并不相同。应用不代理 Apple 账号登录；iloader 属于外部安装工具。详细数据去向见 [数据与隐私](DATA_PRIVACY.md)。
+Android Key 保存在进程级 `GeminiColorSession`；iOS 保存在当前 `ColorEditorModel`。生命周期并不相同。应用不代理 Apple 账号登录；iloader 属于外部安装工具。详细数据去向见 [数据与隐私](../reference/DATA_PRIVACY.md)。
 
 ## 7. 真人清单状态
 
-标准为 [SHOOTING_CHECKLIST.json](SHOOTING_CHECKLIST.json)：3 组、12 个稳定 ID。原生代码各保留一份条目，运行时不读取这个 JSON；因此变更时必须同步 JSON 和两端代码，不能只修改文档。
+标准为 [SHOOTING_CHECKLIST.json](../reference/SHOOTING_CHECKLIST.json)：3 组、12 个稳定 ID。原生代码各保留一份条目，运行时不读取这个 JSON；因此变更时必须同步 JSON 和两端代码，不能只修改文档。
 
 状态为 `pending / confirmed / problem / skipped`，缺失或未知状态按待检查处理。只有使用者操作状态菜单才会改变结果。`confirmed` 计入已确认；问题和不适用单独计数。它不是自动测试服务，也不读取相机或 AI 成功信号来勾选。
 
@@ -103,7 +103,7 @@ Android：Gradle 单 app 模块，APK 编译、JVM 算法/几何测试、Android
 
 iOS：Xcode 工程是 App 打包入口；`Package.swift` 不是已经验证的独立分发路径。CI 构建模拟器并截图，运行 Swift 核心检查；另一个 workflow 生成未签名 IPA。Debug 启动参数可以直达编辑器和清单，Release 不启用该检查入口。
 
-[测试指南](TESTING.md)说明如何执行，[开发验收表](CROSS_PLATFORM_ACCEPTANCE.md)记录结论，[版本交付记录](RELEASES.md)将证据绑定到具体提交。截图、编译或算法通过均不能替代真人拍摄验收。
+[测试指南](../testing/TESTING.md)说明如何执行，[开发验收表](../testing/CROSS_PLATFORM_ACCEPTANCE.md)记录结论，[版本交付记录](../testing/RELEASES.md)将证据绑定到具体提交。截图、编译或算法通过均不能替代真人拍摄验收。
 
 ## 流式调色状态补充
 
@@ -111,7 +111,7 @@ iOS：Xcode 工程是 App 打包入口；`Package.swift` 不是已经验证的�
 
 ## 9. 买断与自带 Key 架构（用户确认方向，待实施）
 
-核心功能一次付费全部解锁，AI 使用用户自己的 Key 并在本机安全保存；无订阅、AI 次数包、应用账号或自建业务后端。此决策取代前一轮小后端/额度账本建议。工具买断与供应商的模型费用分开说明，不能宣传为买断无限免费云端 AI。定位见 [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)。
+核心功能一次付费全部解锁，AI 使用用户自己的 Key 并在本机安全保存；无订阅、AI 次数包、应用账号或自建业务后端。此决策取代前一轮小后端/额度账本建议。工具买断与供应商的模型费用分开说明，不能宣传为买断无限免费云端 AI。定位见 [PRODUCT_STRATEGY.md](../product/PRODUCT_STRATEGY.md)。
 
 ```mermaid
 flowchart LR
@@ -167,4 +167,4 @@ Android 的支付方式按所选渠道单独设计，设备存储与 AI 引导�
 
 已实现：两端本机编辑、真人清单、Gemini 流式直连。待实现：单笔买断、Key 安全持久化和三步新手引导。小后端、AI 次数包及账号体系不在当前路线。
 
-持久化验收覆盖重启、替换失败、清除、系统锁定和重签名；引导需在目标地区用新/旧账号实测。StoreKit 独立验证购买取消、pending、恢复与撤销。计划见 [PRODUCT_STRATEGY.md](PRODUCT_STRATEGY.md)，实际已构建内容见 [RELEASES.md](RELEASES.md)。
+持久化验收覆盖重启、替换失败、清除、系统锁定和重签名；引导需在目标地区用新/旧账号实测。StoreKit 独立验证购买取消、pending、恢复与撤销。计划见 [PRODUCT_STRATEGY.md](../product/PRODUCT_STRATEGY.md)，实际已构建内容见 [RELEASES.md](../testing/RELEASES.md)。

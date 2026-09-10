@@ -16,9 +16,9 @@
 
 运行 `tools/test-color-core.sh`（需 Swift 5.9+）。本次在 Linux 官方 Swift 5.9.2 上完成 780 条断言：参数验证、直接/互补 RGB、零强度、RGB 为零时其他调整仍生效、小数精度，以及与 Android 共用 Python 参考像素（8-bit 通道容差 1）。
 
-编辑器提交 `1d9a096` 已完成云端 SwiftUI/UIKit 编译、Simulator 运行截图与未签名 Release IPA 构建。对应证据见 [交付记录](RELEASES.md) 和 [2026-09-09 界面 review](REVIEW_IOS_20260909.md)。默认字体、小屏、空状态和最大辅助字体截图已检查；不等于用户真机照片与保存验收。
+编辑器提交 `1d9a096` 已完成云端 SwiftUI/UIKit 编译、Simulator 运行截图与未签名 Release IPA 构建。对应证据见 [交付记录](../testing/RELEASES.md) 和 [2026-09-09 界面 review](../history/REVIEW_IOS_20260909.md)。默认字体、小屏、空状态和最大辅助字体截图已检查；不等于用户真机照片与保存验收。
 
-后续 `7535b84` 新增真人清单尚未完成新一轮 Xcode 编译/截图/IPA 构建，不能沿用上述旧包的结论。核心算法测试和 App 构建分别运行，命令见 [TESTING.md](TESTING.md)。
+后续 `7535b84` 新增真人清单尚未完成新一轮 Xcode 编译/截图/IPA 构建，不能沿用上述旧包的结论。核心算法测试和 App 构建分别运行，命令见 [TESTING.md](../testing/TESTING.md)。
 
 真机验收：选择横/竖/带 EXIF 旋转的照片；打开四张样片；配置自己的 Key 并分析；核对实际参数与变化统计；拖动强度和 RGB、撤销；切换对比；导出并核对像素尺寸；拒绝照片添加权限；取消分析和更换照片；从编辑器返回相机。API 真实调用未在本次执行。
 
@@ -34,4 +34,4 @@
 
 - [Apple PhotosPickerItem](https://developer.apple.com/documentation/PhotosUI/PhotosPickerItem)：异步读取选图数据。
 - [Apple ImageIO 方向变换](https://developer.apple.com/documentation/imageio/kcgimagesourcecreatethumbnailwithtransform)：缩略图按方向和比例转换。
-- 图片作者、来源与许可见 [SAMPLE_PHOTOS.md](SAMPLE_PHOTOS.md)。
+- 图片作者、来源与许可见 [SAMPLE_PHOTOS.md](../reference/SAMPLE_PHOTOS.md)。

@@ -36,4 +36,4 @@
 4. Android 初始显示原图，离线建议改为主动选择；增加实际预览像素差异统计。拍照结果与保存的页面顺序仍不同，原生控件外观也并非逐像素相同。
 5. Android 当前 Activity 锁定竖屏，横屏不是已支持的统一能力。
 
-每次修改附小屏、默认字体、最大辅助字体及忙碌/失败状态证据。当前覆盖和待办以 [KNOWN_ISSUES.md](KNOWN_ISSUES.md) 与 [验收表](CROSS_PLATFORM_ACCEPTANCE.md) 为准。
+每次修改附小屏、默认字体、最大辅助字体及忙碌/失败状态证据。当前覆盖和待办以 [KNOWN_ISSUES.md](../testing/KNOWN_ISSUES.md) 与 [验收表](../testing/CROSS_PLATFORM_ACCEPTANCE.md) 为准。

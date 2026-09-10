@@ -1,6 +1,6 @@
 # iOS 色彩工作室界面 review
 
-> 此报告只针对 `1d9a096` 及之前的编辑器改版，不含后续真人清单。当前版本状态见 [RELEASES.md](RELEASES.md)。截图曾上传至文内 CI 的 `editor-review` artifact，受保留期限限制。
+> 此报告只针对 `1d9a096` 及之前的编辑器改版，不含后续真人清单。当前版本状态见 [RELEASES.md](../testing/RELEASES.md)。截图曾上传至文内 CI 的 `editor-review` artifact，受保留期限限制。
 
 日期：2026-09-09
 
