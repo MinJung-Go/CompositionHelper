@@ -24,6 +24,10 @@ open CompositionHelper.xcodeproj
 
 完整安装见 [iOS 指南](docs/IOS.md)。Windows 测试见 [iloader 指南](docs/ILOADER_IOS_TESTING.md)。当前默认入口尚未接通独立相册构图分析视图；调色页自身可选照片，详情见 [已知问题](docs/KNOWN_ISSUES.md)。
 
+## 产品方向
+
+建议以轻量摄影工具为定位：本地 Pro 买断，可选云端 AI 次数包；支付和业务后端尚未实施。详见 [产品定位与路线](docs/PRODUCT_STRATEGY.md) 和 [技术架构](docs/ARCHITECTURE.md)。
+
 ## 文档导航
 
 - [全部文档与维护规则](docs/INDEX.md)
