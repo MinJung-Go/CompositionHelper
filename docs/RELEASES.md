@@ -12,6 +12,16 @@
 
 本地包相对 iOS 工作区位置：`build/ios-cloud/1d9a096/CompositionHelper.ipa`、`build/checklists/2026-09-10/CompositionHelper-android.apk`。这些目录被忽略，不随 Git 克隆下载；GitHub Artifacts 也有保留期限，应在失效前按项目交付方式归档。后续文档提交不改变上述二进制来源。
 
+## 2026-09-10 Android 界面同步构建
+
+- 源码：Android `aaedda6`；Debug APK 包含新版编辑器与拍摄检查清单。
+- 包：`build/ui-sync/2026-09-10/CompositionHelper-android.apk`（相对 iOS 工作区，本地归档）。
+- SHA256：`e54f394801636f135881c58a76b16b6cca79fcf48bd457b0ea46c1810f85e0a4`。
+- `assembleDebug`、`assembleDebugAndroidTest`、`testDebugUnitTest`、`lintDebug` 均通过；37 项 JVM，0 失败，lint 0 错误 / 44 警告。
+- 设备测试共 10 项（调色 8、清单 2），仅编译，未执行；新增用例检查零强度像素不变与预览/导出一致性。
+- iOS 核心再次通过 780 项检查；新清单 IPA 尚未构建，旧 IPA 不包含清单。
+- 小屏、大字体、真实 AI 请求及保存副本仍待设备验收，不能依据构建成功判定视觉验收完成。
+
 ## 安装与更新
 
 Android Debug：使用对应设备安装，见 [测试指南](TESTING.md)。更新必须考虑 package ID、签名证书与 versionCode；签名不一致不能直接覆盖。不要通过先卸载来默认解决安装问题，重要清单先导出。iOS 未签名 IPA 需要再签名，可参照 [iloader 指南](ILOADER_IOS_TESTING.md)。签名后的包与本表未签名包 SHA256 不同是正常现象。
