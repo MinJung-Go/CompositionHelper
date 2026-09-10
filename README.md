@@ -24,6 +24,10 @@ cd CompositionHelper
 
 Debug APK：`app/build/outputs/apk/debug/app-debug.apk`。运行最低 API 24；当前锁定竖屏。详细安装见 [Android 指南](docs/ANDROID.md)。
 
+## 产品方向
+
+建议以轻量摄影工具为定位：本地 Pro 买断，可选云端 AI 次数包；支付和业务后端尚未实施。详见 [产品定位与路线](docs/PRODUCT_STRATEGY.md) 和 [技术架构](docs/ARCHITECTURE.md)。
+
 ## 文档导航
 
 - [全部文档与维护规则](docs/INDEX.md)

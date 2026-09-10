@@ -9,6 +9,11 @@
 - [构图说明](FEATURES.md)、[样片来源](SAMPLE_PHOTOS.md)、[真人拍摄清单](SHOOTING_CHECKLIST.md)。
 - [数据与隐私](DATA_PRIVACY.md)。
 
+## 产品与商业化
+
+- [产品定位、收费结构与分阶段路线](PRODUCT_STRATEGY.md)：推荐方案，支付与后端尚未实施。
+- [技术架构](ARCHITECTURE.md)：区分当前实现与无后端/小后端目标设计。
+
 ## 开发与测试
 
 - [AI 流式调色计划、实现与验收](AI_STREAMING.md)。
