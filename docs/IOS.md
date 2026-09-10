@@ -1,19 +1,15 @@
-# iOS 版本详细文档
+# iOS 安装、构建与使用
 
-> CompositionHelper iOS 版本的完整安装、构建和配置指南
+更新：2026-09-10。源码在 `ios` 分支；App 使用 Xcode 工程构建。完整结构见 [架构文档](ARCHITECTURE.md)。
 
-## 前置要求
+## 环境
 
-| 工具 | 最低版本 | 推荐版本 |
-|------|---------|---------|
-| macOS | 12.0 (Monterey) | 13.0+ |
-| Xcode | 14.0 | 15.0+ |
-| iOS 部署目标 | 15.0 | 17.0+ |
-| Swift | 5.0 | 5.9+ |
+- App 最低 iOS **16.0**，与 Xcode 工程及 `Package.swift` 一致。
+- 使用 Swift 5.9+ 工具链；Xcode 15 或更新版本，并安装对应 iOS SDK。
+- macOS 版本须满足所选 Xcode 要求；本项目没有对所有 Xcode/macOS 组合完成验收。
+- 无 Mac 时可使用已有云端未签名 IPA，在 Windows 按 [iloader 指南](ILOADER_IOS_TESTING.md)签名安装。
 
-## 安装步骤
-
-### 方式一：克隆并直接打开
+## 获取代码与运行
 
 ```bash
 git clone -b ios https://github.com/MinJung-Go/CompositionHelper.git
@@ -21,184 +17,29 @@ cd CompositionHelper
 open CompositionHelper.xcodeproj
 ```
 
-### 方式二：使用 Git 切换分支
+如果需要本轮未推送的新功能，应使用交付方提供的对应提交/构建，不能假定刚克隆的远端已包含所有本地改动。
 
-```bash
-git fetch origin
-git checkout ios
-git pull origin ios
-```
+在 Xcode 选择 `CompositionHelper` Scheme。模拟器可用于样片、调色及界面检查；真实相机、照片授权、保存与拍摄质量需要 iPhone。使用真机时配置自己的开发团队、连接并信任设备，按系统提示启用开发者模式。开发签名、未签名 IPA 和商店分发是不同交付路径。
 
-## 运行到设备
+命令行编译与截图入口见 [测试指南](TESTING.md)。`Package.swift` 提供库描述，但当前已验证的 App 打包入口是 `CompositionHelper.xcodeproj`，不要将 `swift build` 当作完整 iOS App 验收。
 
-### 模拟器
+## 当前入口
 
-1. 在 Xcode 中选择目标设备（推荐 iPhone 14 Pro+）
-2. 按 `Command + R` 运行
-3. **注意**: 模拟器不支持实时相机，仅可测试相册分析模式
+- 默认进入实时相机，可切换构图、辅助线设置与智能建议。
+- 相机顶部“调色”和拍摄结果页可进入色彩工作室；调色页自身可选相册照片、内置样片。
+- 清单版本在相机顶部提供“拍摄检查清单”，由人标记结果并保存备注；此前 `1d9a096` 包不含此功能。
+- 静态相册构图分析视图虽有代码，默认相机到该视图的导航尚未接通，见 [NAV-01](KNOWN_ISSUES.md)。不要用“存在页面源码”代替可达性验收。
 
-### 真机（推荐）
+## 权限与数据
 
-1. 用 USB 线连接设备
-2. 在 Xcode → Preferences → Accounts 添加 Apple ID
-3. 选择项目 → Target → Signing & Capabilities → 选择开发团队
-4. 选择设备，按 `Command + R` 运行
+`Info.plist` 包含相机、照片读取、添加照片的用途说明。系统 PhotosPicker 的选择行为、相册添加授权和相机授权分别验收；拒绝权限后不能把无图状态当作正常拍摄结果。照片、密钥和清单数据范围见 [数据说明](DATA_PRIVACY.md)。
 
-## 技术架构
+## 排查顺序
 
-### 核心技术
+1. 无法编译：记录 Xcode/Swift 版本、提交号及第一条编译错误，区分 SDK 问题、源码问题与签名问题。
+2. 无法安装：先确认 IPA 是否签名、设备系统是否满足最低要求、工具的具体失败阶段。
+3. 相机黑屏：确认真机、相机权限与会话错误；模拟器截图不是相机验收。
+4. AI 失败：区分设置、网络/账号、配方校验和本地渲染阶段，不因登录或请求失败直接替换安装驱动。
+5. 保存提示成功：到系统相册实际打开核对原片、副本、方向和尺寸。
 
-```yaml
-语言: Swift 5.9+
-UI 框架: SwiftUI
-最低版本: iOS 15.0
-目标版本: iOS 17.0+
-```
-
-### 系统框架
-
-| 框架 | 用途 |
-|------|------|
-| SwiftUI | 声明式 UI |
-| AVFoundation | 实时相机预览、拍照、帧分析 |
-| Vision | 人脸检测、矩形检测、物体分析 |
-| Core Image | 图像处理 |
-| PhotosUI | PHPicker 相册选择 |
-
-无第三方依赖。
-
-## 项目结构
-
-```
-Sources/
-├── CompositionHelperApp.swift          # App 入口 → ContentView
-├── Models/
-│   ├── CompositionType.swift           # 19 种构图枚举 + 3 分类
-│   └── AnalysisModels.swift            # 分析数据模型
-├── Views/
-│   ├── ContentView.swift               # 导航入口（默认相机模式）
-│   ├── CompositionHelper.swift         # 相册分析模式 UI
-│   └── Overlays/
-│       └── CompositionOverlays.swift   # 19 种构图 overlay 绘制
-├── Camera/
-│   ├── CameraManager.swift             # AVCaptureSession 管理
-│   │   - 视频输入（后置摄像头）
-│   │   - 拍照输出（AVCapturePhotoOutput）
-│   │   - 帧分析输出（AVCaptureVideoDataOutput）
-│   │   - CameraPreviewView (UIViewRepresentable)
-│   ├── FrameAnalyzer.swift             # 实时帧分析
-│   │   - 2.5 秒节流
-│   │   - Vision 人脸/矩形检测
-│   │   - LightweightAnalyzer 构图匹配
-│   └── CameraCompositionView.swift     # 全屏相机 UI
-│       - 相机预览 + 构图叠加
-│       - 主体追踪框（SubjectTrackingOverlay）
-│       - 手动/智能模式切换
-│       - 拍照和预览
-├── Components/
-│   ├── ControlPanel.swift              # 底部构图选择面板
-│   ├── ShutterButton.swift             # 快门按钮
-│   └── RecommendationChip.swift        # AI 推荐浮层
-└── Analyzers/
-    └── CompositionAnalyzer.swift       # 全量静态分析（相册模式）
-```
-
-## 实时分析流程
-
-```
-AVCaptureVideoDataOutput (每帧回调)
-        │
-        ▼ (2.5秒节流)
-   FrameAnalyzer.captureOutput()
-        │
-   ┌────┴────┐
-   │ Vision  │
-   │ ├── VNDetectFaceRectanglesRequest
-   │ └── VNDetectRectanglesRequest
-   └────┬────┘
-        │
-        ▼
-   LightweightAnalyzer.analyze()
-   ├── 找最大主体
-   ├── 检查三分点/中心/对角线距离
-   ├── 检查充满画面/负空间
-   └── 生成方向提示
-        │
-        ▼
-   FrameAnalysisResult
-   ├── recommendedType (最佳构图)
-   ├── confidence (置信度)
-   ├── detectedSubjects (检测到的主体)
-   └── guidanceHint (方向提示)
-        │
-        ▼ (DispatchQueue.main.async)
-   UI 更新
-   ├── RecommendationChip (推荐浮层)
-   ├── CompositionOverlayView (构图辅助线)
-   └── SubjectTrackingOverlay (主体追踪)
-       ├── 绿色 = 已对齐关键点
-       ├── 黄色 = 接近关键点
-       └── 青色 = 未对齐
-```
-
-## 权限说明
-
-在 `Info.plist` 中添加：
-
-```xml
-<key>NSCameraUsageDescription</key>
-<string>需要访问相机以进行实时构图引导</string>
-
-<key>NSPhotoLibraryUsageDescription</key>
-<string>需要访问相册以选择照片进行构图分析</string>
-
-<key>NSPhotoLibraryAddUsageDescription</key>
-<string>需要保存拍摄的照片到相册</string>
-```
-
-## 构建命令
-
-```bash
-# Debug 构建
-xcodebuild -scheme CompositionHelper -configuration Debug build
-
-# Release 构建
-xcodebuild -scheme CompositionHelper -configuration Release build
-
-# 清理
-xcodebuild clean
-```
-
-## 常见问题
-
-### 相机黑屏？
-1. 确保在真机上运行（模拟器不支持实时相机）
-2. 确认 Info.plist 中添加了 `NSCameraUsageDescription`
-3. 检查 设置 → 隐私 → 相机 → CompositionHelper
-
-### AI 推荐不显示？
-1. 确认已切换到"智能"模式（点击右上角按钮）
-2. 对准有明显主体的场景（人脸、建筑等）
-3. 等待 2-3 秒让分析完成
-
-### Xcode 编译错误？
-1. `Command + Shift + K` 清理构建
-2. `Command + B` 重新编译
-3. 确保 Xcode 版本 >= 14.0
-
-### 真机运行失败？
-- 确保开发者账号已配置
-- Bundle Identifier 唯一
-- 设备版本 >= iOS 15.0
-- 已信任开发者证书（设置 → 通用 → VPN与设备管理）
-
-## 参考文档
-
-- [SwiftUI](https://developer.apple.com/documentation/swiftui)
-- [AVFoundation](https://developer.apple.com/documentation/avfoundation)
-- [Vision Framework](https://developer.apple.com/documentation/vision)
-- [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/)
-
----
-
-**返回 [主 README](../README.md)**
+最近已验证的编辑器版本及本轮待构建清单版本见 [交付记录](RELEASES.md)。使用者逐项验收见 [拍摄清单](SHOOTING_CHECKLIST.md)。
