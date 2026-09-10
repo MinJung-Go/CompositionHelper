@@ -1,5 +1,6 @@
 package com.example.compositionhelper.color
 
+import android.content.Intent
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -7,10 +8,16 @@ import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.automirrored.filled.CompareArrows
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.platform.LocalDensity
+import com.example.compositionhelper.samples.PhotoSamplesScreen
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,12 +27,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -36,7 +42,26 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun ColorEditorScreen(uri: Uri, onBack: () -> Unit) {
-    key(uri.toString()) { ColorEditorContent(uri, onBack) }
+    val context = LocalContext.current
+    var currentUri by rememberSaveable(uri.toString()) { mutableStateOf(uri.toString()) }
+    var samples by remember { mutableStateOf(false) }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { selected ->
+        if (selected != null) {
+            runCatching { context.contentResolver.takePersistableUriPermission(selected, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+            currentUri = selected.toString()
+        }
+    }
+    if (samples) {
+        Dialog(onDismissRequest = { samples = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            PhotoSamplesScreen(onBack = { samples = false }, onColorPhoto = { selected ->
+                currentUri = selected.toString(); samples = false
+            })
+        }
+    }
+    key(currentUri) {
+        ColorEditorContent(Uri.parse(currentUri), onBack,
+            onChoosePhoto = { picker.launch(arrayOf("image/*")) }, onOpenSamples = { samples = true })
+    }
 }
 
 private data class EditSnapshot(val recipe: String, val strength: Float)
@@ -44,7 +69,8 @@ private data class EditSnapshot(val recipe: String, val strength: Float)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ColorEditorContent(uri: Uri, onBack: () -> Unit,
-    analyzePhoto: suspend (Bitmap, String, String) -> ColorPlan = GeminiColorClient::analyze
+    analyzePhoto: suspend (Bitmap, String, String) -> ColorPlan = GeminiColorClient::analyze,
+    onChoosePhoto: () -> Unit = onBack, onOpenSamples: () -> Unit = onBack
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -73,7 +99,8 @@ internal fun ColorEditorContent(uri: Uri, onBack: () -> Unit,
     var renderRetry by remember { mutableStateOf(0) }
     var settings by remember { mutableStateOf(false) }
     var advanced by rememberSaveable { mutableStateOf(false) }
-    var selectedTool by rememberSaveable { mutableStateOf("曝光") }
+    var details by rememberSaveable { mutableStateOf(false) }
+    var difference by remember { mutableStateOf("") }
     var divider by rememberSaveable { mutableStateOf(.5f) }
     val undo = remember { mutableStateListOf<EditSnapshot>() }
 
@@ -95,8 +122,7 @@ internal fun ColorEditorContent(uri: Uri, onBack: () -> Unit,
             val suggestion = ColorPhotoStore.suggest(loaded)
             source = loaded; offline = suggestion
             if (!initialized) {
-                recipe = ColorPlanCodec.encode(ColorPlan(basic = suggestion.adjustment,
-                    explanation = suggestion.explanation, scene = "离线基础调整"))
+                recipe = ColorPlanCodec.encode(ColorPlan())
                 initialized = true
             }
         } catch (e: CancellationException) { throw e
@@ -116,7 +142,11 @@ internal fun ColorEditorContent(uri: Uri, onBack: () -> Unit,
         rendering = true; renderError = null
         try {
             delay(100)
-            preview = ColorPhotoStore.render(original, requestedPlan, requestedStrength)
+            val result = ColorPhotoStore.renderPreview(original, requestedPlan, requestedStrength)
+            preview = result.bitmap
+            difference = String.format(java.util.Locale.ROOT, "预览变化像素 %.1f%% · 平均通道差 %.2f / 255", result.changedPercent, result.meanDifference)
+            notice = if (requestedPlan == ColorPlan()) "照片已就绪" else if (result.changedPercent == 0f)
+                "渲染完成，当前输出与原图相同" else "调色已渲染完成"
             renderedRecipe = requestedRecipe; renderedStrength = requestedStrength
         } catch (e: CancellationException) { throw e
         } catch (e: Exception) { renderError = "预览失败，请重试"
@@ -135,7 +165,7 @@ internal fun ColorEditorContent(uri: Uri, onBack: () -> Unit,
                 val result = analyzePhoto(original, apiKey, model)
                 applyPlan(result)
                 lastAi = recipe
-                notice = "AI 方案已应用，可调节强度或继续手动微调"
+                notice = "AI 方案已收到，正在渲染…"
             } catch (e: CancellationException) { throw e
             } catch (e: Exception) { actionError = e.message ?: "AI 分析失败，请重试"
             } catch (e: OutOfMemoryError) { actionError = "图片分析内存不足，请重试"
@@ -161,149 +191,145 @@ internal fun ColorEditorContent(uri: Uri, onBack: () -> Unit,
     }
 
     if (settings) AiColorSettings(onDismiss = { settings = false })
+    val busy = loading || analyzing || saving
+    val status = when {
+        loading -> "正在打开照片…"
+        analyzing -> "AI 正在分析光线与色彩…"
+        saving -> "正在导出原尺寸副本…"
+        loadError != null -> "照片未能打开"
+        renderError != null || actionError != null -> "操作失败，可重试"
+        source != null && (rendering || !previewReady) -> "正在渲染调色…"
+        else -> notice ?: "照片已就绪"
+    }
+    val saveAction: () -> Unit = {
+        if (Build.VERSION.SDK_INT <= 28 && ContextCompat.checkSelfPermission(context,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        } else saveCopy()
+    }
     Scaffold(topBar = {
-        TopAppBar(title = { Column {
-            Text("色彩工作室", style = MaterialTheme.typography.titleLarge)
-            Text("COLOR STUDIO", fontSize = 9.sp, letterSpacing = 2.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        } }, navigationIcon = { TextButton(onClick = onBack) { Text("‹ 返回") } },
-            actions = { TextButton(onClick = { settings = true }, enabled = !analyzing) { Text("AI 设置") } },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background))
+        CenterAlignedTopAppBar(title = { Text("色彩工作室", style = MaterialTheme.typography.titleLarge) },
+            navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.Close, "关闭色彩工作室") } },
+            actions = { IconButton(onClick = { settings = true }) { Icon(Icons.Default.Tune, "AI 设置") } },
+            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.background))
     }, bottomBar = {
-        if (source != null) Surface(color = MaterialTheme.colorScheme.background) {
-            Row(Modifier.navigationBarsPadding().fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = { analyze() }, enabled = enabled, modifier = Modifier.weight(1f).height(50.dp), shape = RoundedCornerShape(14.dp)) {
-                    Text(if (lastAi == null) "AI 调色" else "重新 AI 分析")
-                }
-                OutlinedButton(onClick = {
-                    if (Build.VERSION.SDK_INT <= 28 && ContextCompat.checkSelfPermission(context,
-                            Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                        permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                    } else saveCopy()
-                }, enabled = enabled && previewReady && !rendering, modifier = Modifier.height(50.dp), shape = RoundedCornerShape(14.dp)) {
-                    Text(if (saving) "保存中…" else "保存副本")
+        Surface(color = MaterialTheme.colorScheme.background) {
+            Column(Modifier.navigationBarsPadding().fillMaxWidth()) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Column(Modifier.widthIn(max = 720.dp).align(Alignment.CenterHorizontally).padding(horizontal = 20.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    (actionError ?: renderError)?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        if (busy || rendering) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Text(status, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (analyzing || saving) {
+                            TextButton(onClick = {
+                                if (analyzing) aiJob?.cancel() else saveJob?.cancel()
+                                notice = "操作已取消"
+                            }) { Text(if (analyzing) "取消分析" else "取消保存") }
+                        } else if (renderError != null) {
+                            TextButton(onClick = { renderRetry++ }) { Text("重试预览") }
+                        }
+                    }
+                    if (source != null) {
+                        StudioActions(enabled, enabled && previewReady && !rendering, { analyze() }, saveAction)
+                    }
                 }
             }
         }
     }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)) {
-            val original = source
-            if (original == null) {
-                Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface) {
-                    Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 40.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        if (loading) {
-                            CircularProgressIndicator(Modifier.size(28.dp), strokeWidth = 2.dp)
-                            Text("正在打开照片…", style = MaterialTheme.typography.titleMedium)
-                        } else {
-                            Text("照片未能打开", style = MaterialTheme.typography.titleLarge)
-                            Text(loadError ?: "请重新选择照片", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        BoxWithConstraints(Modifier.fillMaxSize().padding(padding)) {
+            val viewportHeight = maxHeight
+            val largeType = LocalDensity.current.fontScale > 1.4f
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                val original = source
+                if (original == null) {
+                    Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface) {
+                        Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            if (loading) Text("正在打开照片…", style = MaterialTheme.typography.titleMedium)
+                            else {
+                                Text("照片未能打开", style = MaterialTheme.typography.titleLarge)
+                                Text(loadError ?: "请重新选择照片", color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 OutlinedButton(onClick = { loadRetry++ }) { Text("重新读取") }
-                                Button(onClick = onBack) { Text("重新选图") }
+                                Button(onClick = onChoosePhoto) { Text("重新选图") }
+                            }
+                        }
+                    }
+                } else {
+                    Column(Modifier.widthIn(max = 720.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            if (!largeType) Text("你的影像", style = MaterialTheme.typography.titleMedium)
+                            Spacer(Modifier.weight(1f))
+                            if (largeType) IconButton(onClick = onChoosePhoto, enabled = !busy) { Icon(Icons.Default.PhotoLibrary, "更换照片") }
+                            else TextButton(onClick = onChoosePhoto, enabled = !busy) {
+                                Icon(Icons.Default.PhotoLibrary, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("换照片")
+                            }
+                            IconButton(onClick = onOpenSamples, enabled = !busy) { Icon(Icons.Default.GridView, "选择内置样片") }
+                        }
+                        StudioPhotoPreview(original, preview ?: original, comparison, divider,
+                            maxHeight = (viewportHeight * .62f).coerceIn(if (largeType) 140.dp else 220.dp, 520.dp))
+                        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surface).padding(4.dp)) {
+                            listOf("左右对比", "调色后", "原图").forEach { mode ->
+                                TextButton(onClick = { comparison = mode }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(9.dp),
+                                    colors = ButtonDefaults.textButtonColors(containerColor = if (comparison == mode) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)) {
+                                    Text(if (mode == "左右对比") "对比" else mode, fontSize = 12.sp)
+                                }
+                            }
+                        }
+                        if (comparison == "左右对比") {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.AutoMirrored.Filled.CompareArrows, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Slider(divider, { divider = it }, valueRange = 0f..1f,
+                                    modifier = Modifier.padding(start = 12.dp).semantics { contentDescription = "前后对比分界" })
+                            }
+                        }
+                        Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface) {
+                            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                Text("调色方案", style = MaterialTheme.typography.titleMedium)
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    TextButton(onClick = {
+                                        val snapshot = undo.removeAt(undo.lastIndex)
+                                        recipe = snapshot.recipe; strength = snapshot.strength; notice = null
+                                    }, enabled = enabled && undo.isNotEmpty()) { Text("撤销") }
+                                    TextButton(onClick = { applyPlan(ColorPlan()) }, enabled = enabled) { Text("重置") }
+                                }
+                                if (plan.scene.isNotBlank()) Text(plan.scene, style = MaterialTheme.typography.titleSmall)
+                                if (plan.explanation.isNotBlank()) Text(plan.explanation, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+                                AdjustmentSlider("效果强度", strength, 0f..1f, enabled, ::checkpoint) { strength = it }
+                                TextButton(onClick = { advanced = !advanced }) { Text(if (advanced) "手动精调 −" else "手动精调") }
+                                if (advanced) {
+                                    val a = plan.basic
+                                    fun adjust(value: ColorAdjustment) { recipe = ColorPlanCodec.encode(plan.copy(basic = value)); notice = null }
+                                    AdjustmentSlider("曝光", a.exposure, -1f..1f, enabled, ::checkpoint) { adjust(a.copy(exposure=it)) }
+                                    AdjustmentSlider("对比度", a.contrast, -.5f.. .5f, enabled, ::checkpoint) { adjust(a.copy(contrast=it)) }
+                                    AdjustmentSlider("阴影", a.shadows, -.4f.. .4f, enabled, ::checkpoint) { adjust(a.copy(shadows=it)) }
+                                    AdjustmentSlider("高光", a.highlights, -.4f.. .4f, enabled, ::checkpoint) { adjust(a.copy(highlights=it)) }
+                                    AdjustmentSlider("色温", a.temperature, -.2f.. .2f, enabled, ::checkpoint) { adjust(a.copy(temperature=it)) }
+                                    AdjustmentSlider("色调", a.tint, -.2f.. .2f, enabled, ::checkpoint) { adjust(a.copy(tint=it)) }
+                                    AdjustmentSlider("饱和度", a.saturation, -.5f.. .5f, enabled, ::checkpoint) { adjust(a.copy(saturation=it)) }
+                                    RgbCorrectionControls(plan.rgb, enabled, ::checkpoint) {
+                                        recipe = ColorPlanCodec.encode(plan.copy(rgb = it)); notice = null
+                                    }
+                                    TextButton(onClick = { offline?.let { applyPlan(ColorPlan(basic = it.adjustment, explanation = it.explanation, scene = "离线基础调整")) } }, enabled = enabled) { Text("离线基础调整") }
+                                }
+                                if (lastAi != null) TextButton(onClick = { lastAi?.let { applyPlan(ColorPlanCodec.decode(it)) } }, enabled = enabled) { Text("恢复 AI 方案") }
+                                TextButton(onClick = { details = !details }) { Text(if (details) "调整详情 −" else "调整详情") }
+                                if (details) {
+                                    Text(difference, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    androidx.compose.foundation.text.selection.SelectionContainer {
+                                        Text(recipe, style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
                             }
                         }
                     }
                 }
-            } else {
-                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surface).padding(4.dp)) {
-                    listOf("左右对比", "调色后", "原图").forEach { mode ->
-                        TextButton(onClick = { comparison = mode }, modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(9.dp), colors = ButtonDefaults.textButtonColors(
-                                containerColor = if (comparison == mode) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent,
-                                contentColor = if (comparison == mode) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)) { Text(mode, fontSize = 12.sp) }
-                    }
-                }
-                Box(Modifier.fillMaxWidth().aspectRatio(original.width.toFloat()/original.height)
-                    .clip(RoundedCornerShape(18.dp)).background(Color.Black)) {
-                    val edited = preview ?: original
-                    Image((if (comparison == "调色后") edited else original).asImageBitmap(),
-                        if (comparison == "调色后") "调色后" else "原图", Modifier.fillMaxSize())
-                    if (comparison == "左右对比") {
-                        Image(edited.asImageBitmap(), "调色后", Modifier.fillMaxSize().drawWithContent {
-                            clipRect(left = size.width*divider) { this@drawWithContent.drawContent() }
-                        })
-                        Box(Modifier.fillMaxSize().drawWithContent {
-                            drawContent()
-                            drawLine(Color.White.copy(alpha=.8f), androidx.compose.ui.geometry.Offset(size.width*divider, 0f),
-                                androidx.compose.ui.geometry.Offset(size.width*divider, size.height), 2.dp.toPx())
-                        })
-                        Text("原图", Modifier.align(Alignment.TopStart).padding(10.dp).background(Color.Black.copy(alpha=.5f), RoundedCornerShape(6.dp)).padding(7.dp), color = Color.White, fontSize = 10.sp)
-                        Text("调色后", Modifier.align(Alignment.TopEnd).padding(10.dp).background(Color.Black.copy(alpha=.5f), RoundedCornerShape(6.dp)).padding(7.dp), color = Color.White, fontSize = 10.sp)
-                    }
-                }
-                if (comparison == "左右对比") {
-                    Column {
-                        Text("滑动分界，对比前后", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Slider(divider, { divider = it }, valueRange = 0f..1f)
-                    }
-                }
-                if (rendering) LinearProgressIndicator(Modifier.fillMaxWidth())
-                renderError?.let {
-                    Text(it, color = MaterialTheme.colorScheme.error)
-                    TextButton(onClick = { renderRetry++ }) { Text("重试预览") }
-                }
-                Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(if (lastAi == null) "自然 · 基础调整" else "AI · 色彩方案", color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.labelMedium)
-                        if (plan.scene.isNotBlank()) Text(plan.scene, style = MaterialTheme.typography.titleSmall)
-                        if (plan.explanation.isNotBlank()) Text(plan.explanation, fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        AdjustmentSlider("效果强度", strength, 0f..1f, enabled, ::checkpoint) { strength = it }
-                    }
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    TextButton(onClick = {
-                        val snapshot = undo.removeAt(undo.lastIndex)
-                        recipe = snapshot.recipe; strength = snapshot.strength; notice = null
-                    }, enabled = enabled && undo.isNotEmpty()) { Text("撤销") }
-                    TextButton(onClick = { applyPlan(ColorPlan()) }, enabled = enabled) { Text("重置") }
-                    TextButton(onClick = { lastAi?.let { applyPlan(ColorPlanCodec.decode(it)) } },
-                        enabled = enabled && lastAi != null) { Text("恢复 AI 方案") }
-                }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                TextButton(onClick = { advanced = !advanced }, modifier = Modifier.fillMaxWidth()) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("手动精调", color = MaterialTheme.colorScheme.onSurface)
-                        Text(if (advanced) "收起 −" else "展开 ＋", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                if (advanced) {
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("RGB 校色", "曝光", "对比度", "阴影", "高光", "色温", "色调", "饱和度").forEach { label ->
-                            FilterChip(selectedTool == label, onClick = { selectedTool = label }, label = { Text(label) })
-                        }
-                    }
-                    val a = plan.basic
-                    fun adjust(value: ColorAdjustment) { recipe = ColorPlanCodec.encode(plan.copy(basic = value)); notice = null }
-                    when (selectedTool) {
-                        "RGB 校色" -> RgbCorrectionControls(plan.rgb, enabled, ::checkpoint) {
-                            recipe = ColorPlanCodec.encode(plan.copy(rgb = it)); notice = null
-                        }
-                        "曝光" -> AdjustmentSlider("曝光", a.exposure, -1f..1f, enabled, ::checkpoint) { adjust(a.copy(exposure=it)) }
-                        "对比度" -> AdjustmentSlider("对比度", a.contrast, -.5f.. .5f, enabled, ::checkpoint) { adjust(a.copy(contrast=it)) }
-                        "阴影" -> AdjustmentSlider("阴影", a.shadows, -.4f.. .4f, enabled, ::checkpoint) { adjust(a.copy(shadows=it)) }
-                        "高光" -> AdjustmentSlider("高光", a.highlights, -.4f.. .4f, enabled, ::checkpoint) { adjust(a.copy(highlights=it)) }
-                        "色温" -> AdjustmentSlider("色温", a.temperature, -.2f.. .2f, enabled, ::checkpoint) { adjust(a.copy(temperature=it)) }
-                        "色调" -> AdjustmentSlider("色调", a.tint, -.2f.. .2f, enabled, ::checkpoint) { adjust(a.copy(tint=it)) }
-                        else -> AdjustmentSlider("饱和度", a.saturation, -.5f.. .5f, enabled, ::checkpoint) { adjust(a.copy(saturation=it)) }
-                    }
-                    TextButton(onClick = { offline?.let { applyPlan(ColorPlan(basic=it.adjustment,
-                        explanation=it.explanation, scene="离线基础调整")) } }, enabled = enabled) { Text("离线基础调整") }
-                }
-                if (analyzing || saving) {
-                    LinearProgressIndicator(Modifier.fillMaxWidth())
-                    Text(if (analyzing) "正在分析照片的光线与色彩…" else "正在保存原尺寸照片…", fontSize = 12.sp)
-                    TextButton(onClick = { if (analyzing) aiJob?.cancel() else saveJob?.cancel() }) { Text(if (analyzing) "取消分析" else "取消保存") }
-                }
-                actionError?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp) }
-                notice?.let { Text(it, color = MaterialTheme.colorScheme.primary, fontSize = 12.sp) }
-                Text("AI 调色会发送照片缩略图；手动调整在本机完成。", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
+
 }
 
 @Composable
@@ -354,12 +380,12 @@ private fun AdjustmentSlider(label: String, value: Float, range: ClosedFloatingP
     Column {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("${kotlin.math.round(value * 100).toInt()}", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+            Text(if (label == "效果强度") "${kotlin.math.round(value * 100).toInt()}%" else String.format(java.util.Locale.ROOT, "%+.4f", value), fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
         }
         Slider(value = value, onValueChange = {
             if (!changing) { onStart(); changing = true }
             onChange(it)
-        }, onValueChangeFinished = { changing = false }, valueRange = range, enabled = enabled)
+        }, onValueChangeFinished = { changing = false }, valueRange = range, enabled = enabled, modifier = Modifier.semantics { contentDescription = label })
     }
 }
 

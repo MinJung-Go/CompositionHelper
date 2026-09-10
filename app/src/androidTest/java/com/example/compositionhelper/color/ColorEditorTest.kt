@@ -66,15 +66,15 @@ class ColorEditorTest {
         }) } }
         waitReady()
         click("AI 调色"); waitForText("测试湖景")
-        click("重新 AI 分析"); waitForText("调用额度不足")
+        click("AI 调色"); waitForText("调用额度不足")
         compose.onNodeWithText("测试湖景").assertExists()
     }
-    @Test fun cancelAnalysisKeepsOfflineRecipeAndAllowsRetry() {
+    @Test fun cancelAnalysisKeepsOriginalAndAllowsRetry() {
         compose.setContent { MaterialTheme { ColorEditorContent(uri, {}, { _, _, _ -> awaitCancellation() }) } }
         waitReady()
         click("AI 调色"); waitForText("取消分析"); click("取消分析")
         compose.onNodeWithText("AI 调色").assertIsEnabled()
-        compose.onAllNodesWithText("离线基础调整").onFirst().assertExists()
+        compose.onAllNodesWithText("操作已取消").onFirst().assertExists()
         compose.onNodeWithText("取消分析").assertDoesNotExist()
     }
     @Test fun missingCredentialOpensSettingsWithoutUploading() {
@@ -106,6 +106,22 @@ class ColorEditorTest {
         compose.onNodeWithText("重新选图").assertExists()
         compose.onNodeWithText("手动精调").assertDoesNotExist()
         compose.onNodeWithText("AI 调色").assertDoesNotExist()
+    }
+    @Test fun previewMetricsMeasureActualPixelsAndMatchExportRenderer() = runBlocking {
+        val source = Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888)
+        source.eraseColor(0xff305080.toInt())
+        val unchanged = ColorPhotoStore.renderPreview(source, aiPlan, 0f)
+        val adjusted = ColorPhotoStore.renderPreview(source, aiPlan, 1f)
+        val export = ColorPhotoStore.render(source, aiPlan, 1f)
+        try {
+            assertEquals(0f, unchanged.changedPercent, 0f)
+            assertEquals(0f, unchanged.meanDifference, 0f)
+            assertTrue(adjusted.changedPercent > 0f)
+            assertTrue(adjusted.meanDifference > 0f)
+            assertTrue(adjusted.bitmap.sameAs(export))
+        } finally {
+            source.recycle(); unchanged.bitmap.recycle(); adjusted.bitmap.recycle(); export.recycle()
+        }
     }
     @Test fun exportPreservesDimensionsOriginalAndUsesSameRecipe() = runBlocking {
         val before = file.readBytes()

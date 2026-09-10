@@ -59,19 +59,40 @@ object ColorPhotoStore {
         ColorAdjustmentEngine.analyze(pixels)
     }
 
-    suspend fun render(source: Bitmap, plan: ColorPlan, strength: Float): Bitmap =
+    data class PreviewResult(val bitmap: Bitmap, val changedPercent: Float, val meanDifference: Float)
+
+    suspend fun render(source: Bitmap, plan: ColorPlan, strength: Float): Bitmap = renderInternal(source, plan, strength, false).bitmap
+
+    suspend fun renderPreview(source: Bitmap, plan: ColorPlan, strength: Float): PreviewResult =
+        renderInternal(source, plan, strength, true)
+
+    private suspend fun renderInternal(source: Bitmap, plan: ColorPlan, strength: Float, metrics: Boolean): PreviewResult =
         withContext(Dispatchers.Default) {
             val output = source.copy(Bitmap.Config.ARGB_8888, true) ?: error("无法创建调色图片")
             try {
                 val row = IntArray(source.width)
                 val transform = ColorPlanEngine.prepare(plan, strength)
+                var changed = 0L
+                var difference = 0L
                 for (y in 0 until source.height) {
                     currentCoroutineContext().ensureActive()
                     source.getPixels(row, 0, source.width, 0, y, source.width, 1)
-                    for (x in row.indices) row[x] = transform(row[x])
+                    for (x in row.indices) {
+                        val original = row[x]
+                        val adjusted = transform(original)
+                        if (metrics) {
+                            val delta = kotlin.math.abs(((original ushr 16) and 255) - ((adjusted ushr 16) and 255)) +
+                                kotlin.math.abs(((original ushr 8) and 255) - ((adjusted ushr 8) and 255)) +
+                                kotlin.math.abs((original and 255) - (adjusted and 255))
+                            if (delta > 0) changed++
+                            difference += delta
+                        }
+                        row[x] = adjusted
+                    }
                     output.setPixels(row, 0, source.width, 0, y, source.width, 1)
                 }
-                output
+                val pixels = source.width.toLong() * source.height
+                PreviewResult(output, changed * 100f / pixels, difference.toFloat() / (pixels * 3))
             } catch (e: Throwable) { output.recycle(); throw e }
         }
 
