@@ -26,7 +26,7 @@ open CompositionHelper.xcodeproj
 
 ## 产品方向
 
-建议以轻量摄影工具为定位：本地 Pro 买断，可选云端 AI 次数包；支付和业务后端尚未实施。详见 [产品定位与路线](docs/PRODUCT_STRATEGY.md) 和 [技术架构](docs/ARCHITECTURE.md)。
+定位为轻量摄影工具：核心功能全部买断，AI 使用用户自己的 Key 并计划在本机安全保存；支付、安全存储和新手引导尚未实施，无业务后端计划。详见 [产品定位与路线](docs/PRODUCT_STRATEGY.md) 和 [技术架构](docs/ARCHITECTURE.md)。
 
 ## 文档导航
 
