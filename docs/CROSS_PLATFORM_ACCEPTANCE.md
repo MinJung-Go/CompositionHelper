@@ -116,3 +116,5 @@
 - 本轮没有真人验收记录，上表所有真人结果仍为待测。
 
 Android 安装包：`build/checklists/2026-09-10/CompositionHelper-android.apk`（iOS 工作区的交付目录）。SHA256：`9bbb06335d2b6a09fbd4ef71efb74560cdecd5c43b069f6e055bf93c70912af6`。
+
+交互测试环境结果：本机缺少 `/dev/kvm`；尝试软件模拟器超过 5 分钟仍未完成 Android 启动，已停止本轮模拟器。两项清单交互测试仅完成编译，**没有执行、不能记为通过**。待有可用设备或具备加速的模拟器运行。
