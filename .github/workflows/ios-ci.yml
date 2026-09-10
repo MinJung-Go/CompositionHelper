@@ -55,6 +55,17 @@ jobs:
         sleep 15
         xcrun simctl io "$DEVICE_ID" screenshot "$RUNNER_TEMP/editor-review/editor-large-type.png"
 
+        xcrun simctl terminate "$DEVICE_ID" com.example.CompositionHelper
+        xcrun simctl ui "$DEVICE_ID" content_size large
+        xcrun simctl launch "$DEVICE_ID" com.example.CompositionHelper --review-checklist
+        sleep 3
+        xcrun simctl io "$DEVICE_ID" screenshot "$RUNNER_TEMP/editor-review/checklist-small.png"
+        xcrun simctl terminate "$DEVICE_ID" com.example.CompositionHelper
+        xcrun simctl ui "$DEVICE_ID" content_size accessibility-extra-extra-extra-large
+        xcrun simctl launch "$DEVICE_ID" com.example.CompositionHelper --review-checklist
+        sleep 3
+        xcrun simctl io "$DEVICE_ID" screenshot "$RUNNER_TEMP/editor-review/checklist-large-type.png"
+
     - name: Upload editor screenshots
       uses: actions/upload-artifact@v6
       with:

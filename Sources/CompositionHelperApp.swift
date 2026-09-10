@@ -5,7 +5,9 @@ struct CompositionHelperApp: App {
     var body: some Scene {
         WindowGroup {
             #if DEBUG
-            if ProcessInfo.processInfo.arguments.contains("--review-color") {
+            if ProcessInfo.processInfo.arguments.contains("--review-checklist") {
+                ShootingChecklistView()
+            } else if ProcessInfo.processInfo.arguments.contains("--review-color") {
                 ColorEditorView(initialData: reviewPhoto)
             } else {
                 ContentView()

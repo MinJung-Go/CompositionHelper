@@ -14,6 +14,7 @@ struct CameraCompositionView: View {
     @State private var showControls = true
     @State private var showSettings = false
     @State private var showColorStudio = false
+    @State private var showChecklist = false
     @State private var showCapturedPhoto = false
     @State private var spiralOrientation = 0 // 0=↘ 1=↙ 2=↗ 3=↖
 
@@ -75,6 +76,7 @@ struct CameraCompositionView: View {
         .onChange(of: isSmartMode) { newValue in
             handleSmartModeChange(newValue)
         }
+        .sheet(isPresented: $showChecklist) { ShootingChecklistView() }
         .sheet(isPresented: $showColorStudio) { ColorEditorView() }
         .sheet(isPresented: $showSettings) {
             settingsSheet
@@ -160,6 +162,10 @@ struct CameraCompositionView: View {
             }
 
             Spacer()
+
+            Button { showChecklist = true } label: {
+                Image(systemName: "checklist").font(.system(size: 20)).frame(width: 44, height: 44)
+            }.foregroundColor(.white).accessibilityLabel("拍摄检查清单")
 
             Button("调色") { showColorStudio = true }.foregroundColor(.white)
 

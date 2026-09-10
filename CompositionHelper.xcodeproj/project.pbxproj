@@ -29,6 +29,7 @@
 		CC0000000000000000000206 = {isa = PBXBuildFile; fileRef = CC0000000000000000000106; };
 		CC0000000000000000000207 = {isa = PBXBuildFile; fileRef = CC0000000000000000000107; };
 		CC0000000000000000000208 = {isa = PBXBuildFile; fileRef = CC0000000000000000000108; };
+		CD0000000000000000000200 = {isa = PBXBuildFile; fileRef = CD0000000000000000000100; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -56,6 +57,7 @@
 		CC0000000000000000000106 = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "Resources/sample_forest.jpg"; sourceTree = "<group>"; };
 		CC0000000000000000000107 = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "Resources/sample_coffee.jpg"; sourceTree = "<group>"; };
 		CC0000000000000000000108 = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "Resources/sample_city.jpg"; sourceTree = "<group>"; };
+		CD0000000000000000000100 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Components/ShootingChecklistView.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -95,6 +97,7 @@
 				CC0000000000000000000105,
 				CC0000000000000000000104,
 				CC0000000000000000000103,
+				CD0000000000000000000100,
 				CC0000000000000000000102,
 				CC0000000000000000000101,
 				CC0000000000000000000100,
@@ -237,6 +240,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CC0000000000000000000203,
+				CD0000000000000000000200,
 				CC0000000000000000000202,
 				CC0000000000000000000201,
 				CC0000000000000000000200,
