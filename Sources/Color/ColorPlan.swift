@@ -177,6 +177,7 @@ struct ColorStreamDecoder {
     private var total = 0
     private var stopped = false
     private var previous: ColorPlan?
+    var isComplete: Bool { stopped }
 
     mutating func line(_ line: String) throws -> ColorPlan? {
         total += line.utf8.count + 1

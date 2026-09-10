@@ -112,7 +112,7 @@ struct GeminiColorService {
             if byte == 10 {
                 if line.last == 13 { line.removeLast() }
                 guard let value = String(data: line, encoding: .utf8) else { throw ColorFailure("AI 响应编码无效") }
-                if let partial = try decoder.line(value) { try await onPreview(partial) }
+                if let partial = try decoder.line(value), !decoder.isComplete { try await onPreview(partial) }
                 line.removeAll(keepingCapacity: true)
             } else { line.append(byte) }
         }
