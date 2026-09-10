@@ -1,289 +1,63 @@
-# Android 详细文档
+# Android 安装、构建与使用
 
-> CompositionHelper Android 版本的安装、构建、架构和配置指南
+更新：2026-09-10。源码在 `master` 分支；它是 Android 分支，不含 Xcode 工程。架构见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
----
+## 构建环境
 
-## 前置要求
+| 项目 | 当前项目配置 |
+|---|---|
+| JDK | 17 |
+| Gradle Wrapper | 8.2，使用仓库 `gradlew` |
+| Android Gradle Plugin | 8.2.0 |
+| SDK | compileSdk / targetSdk 34，build-tools 34.0.0 用于当前构建环境 |
+| 最低运行系统 | API 24 |
+| 页面方向 | 当前 Activity 锁定竖屏 |
 
-| 工具 | 最低版本 | 推荐版本 |
-|------|---------|---------|
-| Android Studio | Flamingo | Jellyfish+ |
-| JDK | 17 | 17 |
-| Android SDK | API 24 | API 34 |
-| Gradle | 8.0 | 8.5+ |
-
-> **注意**: JDK 17 是必须的（AGP 8.2.0 要求），JDK 11 无法编译。
-
----
-
-## 安装步骤
-
-### 方式一：克隆并打开
+`minSdk 24` 是运行要求，不是编译只需下载 API 24。通过 Android Studio 打开项目，设置 SDK 路径；可在本地 `local.properties` 配置 `sdk.dir`，不要提交绝对路径。首次构建需联网下载缺少的依赖，缓存完整后再考虑 `--offline`。
 
 ```bash
-git clone https://github.com/MinJung-Go/CompositionHelper.git
+git clone -b master https://github.com/MinJung-Go/CompositionHelper.git
 cd CompositionHelper
-# Android Studio > Open > 选择项目目录
-```
-
-### 方式二：已克隆仓库
-
-```bash
-git fetch origin
-git checkout master
-git pull origin master
-```
-
----
-
-## 运行
-
-### 模拟器
-
-1. Tools > Device Manager > 创建/选择模拟器 (API 29+)
-2. Run (`Shift + F10`)
-
-### 真机
-
-1. **开启开发者选项**: 设置 > 关于手机 > 连续点击"版本号" 7 次
-2. **开启 USB 调试**: 设置 > 开发者选项 > USB 调试
-3. 连接设备，授权 USB 调试，在 Android Studio 中选择设备运行
-
-### 命令行查看
-
-连接一台 Android 设备或启动带硬件加速的模拟器后，可以直接安装并打开应用：
-
-```bash
-./view-android.sh --camera
-```
-
-在没有稳定相机设备的模拟器上，优先打开相册分析界面：
-
-```bash
-./view-android.sh --gallery
-```
-
-需要保存当前屏幕截图时：
-
-```bash
-./view-android.sh --gallery --screenshot /tmp/compositionhelper.png --wait 30
-```
-
----
-
-## 技术栈
-
-| 技术 | 版本/说明 |
-|------|---------|
-| Kotlin | 1.9.20+ |
-| Jetpack Compose | UI 框架 |
-| Material Design 3 | 设计系统 |
-| CameraX | 1.3.1 (Preview + ImageAnalysis + ImageCapture) |
-| ML Kit | Object Detection (STREAM_MODE) |
-| Navigation Compose | 页面导航 |
-| Accompanist Permissions | 运行时权限 |
-| Coil Compose | 图片加载 |
-| minSdk | API 24 (Android 7.0) |
-| targetSdk | API 34 (Android 14) |
-| AGP | 8.2.0 |
-| Gradle | 8.2 |
-
----
-
-## 项目结构
-
-```
-app/src/main/java/com/example/compositionhelper/
-├── MainActivity.kt                     # 入口 Activity + Navigation + 沉浸式
-├── CompositionHelperApp.kt             # 相册分析模式 UI
-├── ImageAnalyzer.kt                    # 全量图像分析器（相册模式用）
-│
-├── model/                              # 共享数据模型
-│   ├── CompositionModels.kt            # CompositionType 枚举 (19种)
-│   │                                   # CompositionCategory 枚举 (3类)
-│   └── AnalysisModels.kt              # DetectedSubject, RectF, PointF,
-│                                       # FrameAnalysisResult 等数据类
-│
-├── overlay/                            # 构图叠加绘制
-│   ├── CompositionDrawing.kt           # CompositionRenderer 接口
-│   │                                   # CanvasRenderer (Bitmap 模式)
-│   │                                   # DrawScopeRenderer (Compose 模式)
-│   │                                   # 19 种构图的绘制函数
-│   ├── CameraCompositionOverlay.kt     # Compose Canvas 实时叠加层
-│   │                                   # 主体边框 + 关键点对齐提示
-│   └── CompositionOverlay.kt          # Bitmap 叠加 (相册模式用)
-│
-├── camera/                             # 实时相机模块
-│   ├── CameraManager.kt               # CameraX 生命周期封装
-│   │                                   # initialize / bindPreview / capturePhoto
-│   ├── FrameAnalyzer.kt               # ImageAnalysis.Analyzer 实现
-│   │                                   # 2.5s 节流 + ML Kit 物体检测
-│   │                                   # LightweightAnalyzer 推荐算法
-│   └── CameraCompositionScreen.kt     # 全屏沉浸式相机 UI
-│
-└── ui/
-    ├── components/
-    │   ├── ControlPanel.kt             # 底部控制栏 + 设置 BottomSheet
-    │   ├── ShutterButton.kt           # 拍照按钮
-    │   └── RecommendationChip.kt      # AI 推荐浮层 (分数环 + 方向提示)
-    └── theme/
-        └── Theme.kt                    # Material 3 主题 + 透明系统栏
-```
-
----
-
-## 架构设计
-
-### 双模式架构
-
-| 模式 | 入口 | 功能 |
-|------|------|------|
-| 实时相机 (默认) | `CameraCompositionScreen` | 取景器 + 实时构图叠加 + AI 推荐 |
-| 相册分析 | `CompositionHelperApp` | 选照片 + 全量分析 + 构图叠加 |
-
-两种模式通过 Navigation Compose 管理（`"camera"` / `"gallery"` 路由）。
-
-### 绘制代码复用
-
-`CompositionRenderer` 接口抽象了所有绘制操作（drawLine, drawCircle, drawRect, drawArc, drawPath），19 种构图的绘制函数只写一份：
-
-- **相册模式**: `CanvasRenderer` 包装 `android.graphics.Canvas`，在 Bitmap 上绘制
-- **相机模式**: `DrawScopeRenderer` 包装 Compose `DrawScope`，在 Canvas composable 上绘制
-
-### 实时分析流水线
-
-```
-CameraX ImageAnalysis (640x480, YUV)
-    ↓ 2.5s 节流
-FrameAnalyzer (InputImage.fromMediaImage)
-    ↓
-ML Kit ObjectDetector (STREAM_MODE)
-    ↓
-LightweightAnalyzer.recommend()
-    ↓ 基于主体位置判断
-FrameAnalysisResult {
-    recommendedType: CompositionType
-    confidence: Float
-    detectedSubjects: List<DetectedSubject>
-    guidanceHint: String?  // "稍微向右移动"
-}
-    ↓ Handler.post → 主线程
-CameraCompositionOverlay 更新
-```
-
----
-
-## 构建
-
-### 命令行
-
-```bash
-./gradlew clean              # 清理
-./gradlew assembleDebug      # Debug APK
-./gradlew assembleRelease    # Release APK
-./gradlew installDebug       # 安装到设备
-```
-
-### APK 输出
-
-```
-app/build/outputs/apk/debug/app-debug.apk
-app/build/outputs/apk/release/app-release.apk
-```
-
-### GitHub Actions CI
-
-每次推送到 `master` 分支会自动触发 CI 构建。配置文件: `.github/workflows/android-ci.yml`
-
----
-
-## 权限
-
-| 权限 | 用途 | 请求时机 |
-|------|------|---------|
-| `CAMERA` | 实时预览和拍照 | 进入相机模式时 |
-| `READ_EXTERNAL_STORAGE` | 访问相册 (Android 12-) | 进入相册模式时 |
-| `READ_MEDIA_IMAGES` | 读取图片 (Android 13+) | 进入相册模式时 |
-
-AndroidManifest.xml 中同时声明了 `android.hardware.camera` 和 `android.hardware.camera.autofocus`，均设为 `required="false"` 以兼容无相机设备。
-
----
-
-## 常见问题
-
-### Gradle 同步失败
-
-```bash
-# 确认 JDK 版本 (必须 17)
 java -version
-
-# 清理并刷新
-./gradlew clean && ./gradlew --refresh-dependencies
+./gradlew :app:assembleDebug --no-daemon --max-workers=2
 ```
 
-### 找不到设备
+APK 位于 `app/build/outputs/apk/debug/app-debug.apk`。远端未推送的功能不会随 clone 出现，请核对 [交付记录](RELEASES.md) 的提交号。
+
+## 安装与入口
+
+手机开启开发者选项、USB 调试并授权电脑；选择具体设备后安装：
 
 ```bash
-adb devices           # 检查连接
-adb kill-server       # 重启 ADB
-adb start-server
+adb devices
+adb -s DEVICE_SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-确认：开发者选项已启用、USB 调试已开启、设备已授权。
+替换设备序列号。运行默认进入相机，底部相册按钮进入构图工作室；参考照片可进入调色。拍照保存原片后进入色彩编辑器。清单版本从相机顶部图标打开检查清单，支持人工状态、备注、导出及重置。
 
-### 构建失败
+仓库 `view-android.sh` 可辅助打开 `--camera` 或 `--gallery`，例如 `./view-android.sh --gallery --screenshot /tmp/compositionhelper.png --wait 30`。自动化脚本不替代对实际照片和保存结果的核对。
 
-```bash
-./gradlew clean
-rm -rf .gradle app/build
-# Android Studio: File > Invalidate Caches / Restart
-```
+## 相机、权限与选图
 
-### ML Kit 分析不工作
+CameraX 预览当前使用 **COMPATIBLE / TextureView**，并通过 ViewPort 关联画幅。Manifest 中相机硬件设为非必需；无设备或权限失败时仍需验证恢复入口。
 
-- 确认设备已安装 Google Play 服务
-- 检查权限: 设置 > 应用 > CompositionHelper > 权限
-- 查看日志: `adb logcat | grep -E "MLKit|FrameAnalyzer"`
+- 相机权限用于预览与拍照。
+- API 24–28 拍照保存涉及写存储权限，须验证授予、拒绝和重试。
+- 构图工作室主要使用系统 `OpenDocument` 选图，并尝试保留所选 URI 的读取授权。
+- 代码和 Manifest 仍保留部分独立相册读取权限逻辑；不能把整个相册权限描述为所有系统选图的固定前置条件。
 
-### 相机预览问题
+数据和备份实际范围见 [DATA_PRIVACY.md](DATA_PRIVACY.md)。
 
-- 模拟器相机功能有限，建议真机测试
-- 确认 `CAMERA` 权限已授予
-- PreviewView 使用 `PERFORMANCE` 模式 (SurfaceView)，个别低端设备可能需要切换到 `COMPATIBLE` 模式
+## 测试与故障定位
 
----
+[TESTING.md](TESTING.md)包含 JVM、lint、设备测试命令及报告位置。当前 CI 只执行 Debug APK 构建，测试结果需另外保存。
 
-## 发布
+- 构建失败先记录第一条错误、JDK、SDK 和依赖缓存状态；不要默认删除所有缓存。
+- 无设备先检查 `adb devices` 和手机授权；Linux 模拟器缺少 KVM 加速可能无法在合理时间启动。
+- 相机无预览要区分初始化、绑定、首帧和权限；不要只看绑定成功日志。
+- 模型初始化失败应保留具体错误，不将所有问题一概归因于某个系统服务。
+- 更新安装失败先核对 package ID、签名与版本；卸载可能清除清单记录，先导出重要数据。
 
-### 签名配置
+## 发布边界
 
-```bash
-# 创建密钥库
-keytool -genkey -v -keystore release.keystore \
-    -alias compositionhelper -keyalg RSA -keysize 2048 -validity 10000
-```
-
-在 `app/build.gradle.kts` 中配置 signingConfig，然后 `./gradlew assembleRelease`。
-
-### Google Play 发布
-
-1. 注册 [Google Play Console](https://play.google.com/console)
-2. 创建应用，上传图标和截图
-3. 上传签名 APK/AAB
-4. 完成内容分级问卷
-5. 提交审核 (1-3 天)
-
----
-
-## 参考文档
-
-- [CameraX](https://developer.android.com/training/camerax) - 相机框架
-- [ML Kit Object Detection](https://developers.google.com/ml-kit/vision/object-detection) - 物体检测
-- [Jetpack Compose](https://developer.android.com/jetpack/compose) - UI 框架
-- [Material Design 3](https://m3.material.io/) - 设计系统
-- [Navigation Compose](https://developer.android.com/jetpack/compose/navigation) - 导航
-
----
-
-**返回 [主 README](../README.md)**
+当前 Debug APK 是测试包。项目仍使用示例 package ID，正式 release signingConfig 尚未配置；没有完成正式渠道发布验收。版本递增、签名、回退与证据要求见 [RELEASES.md](RELEASES.md)。真实渠道政策应在发布时重新核实，这里不承诺审核时长。

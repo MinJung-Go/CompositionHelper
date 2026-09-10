@@ -1,25 +1,8 @@
-# 项目设置指南
+# 项目设置入口
 
-## Android 版本 (master 分支)
+本仓库维护两套原生应用，先选择目标分支：
 
-详见 [docs/ANDROID.md](docs/ANDROID.md)
+- `master`：Android，JDK 17、Gradle Wrapper 8.2、SDK 34，见 [Android 指南](docs/ANDROID.md)。
+- `ios`：iOS，App 最低 iOS 16、Swift 5.9+，使用 Xcode 工程，见 [iOS 指南](docs/IOS.md)。
 
-```bash
-git clone https://github.com/MinJung-Go/CompositionHelper.git
-cd CompositionHelper
-# 用 Android Studio 打开
-```
-
-前置要求: JDK 17, Android Studio, Android SDK API 34
-
-## iOS 版本 (ios 分支)
-
-详见 [ios 分支 README](https://github.com/MinJung-Go/CompositionHelper/tree/ios)
-
-```bash
-git clone -b ios https://github.com/MinJung-Go/CompositionHelper.git
-cd CompositionHelper
-open CompositionHelper.xcodeproj
-```
-
-前置要求: macOS 12+, Xcode 14+, iOS 15.0+
+当前分支不一定包含另一平台源码。文档入口见 [docs/INDEX.md](docs/INDEX.md)，实际依赖和职责见 [架构文档](docs/ARCHITECTURE.md)，测试命令见 [测试指南](docs/TESTING.md)。
