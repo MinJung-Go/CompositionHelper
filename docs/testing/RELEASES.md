@@ -11,7 +11,7 @@
 | Android Debug | `build/streaming/08a7451/CompositionHelper-android.apk` | `57ab859d27150f1270932ceb5933f5715f587650e5c564a18ae2e83419de2829` | 48 项 JVM 通过，lint 0 错误/44 警告，APK 与测试 APK 构建通过；[云端构建](https://github.com/MinJung-Go/CompositionHelper/actions/runs/34434783913)通过 |
 | iOS 未签名 | `build/streaming/a96bfc4/CompositionHelper.ipa` | `0676382c9fbbb1694189393a8866a801c40b74ef02ba5d241d3a33c1fbca9196` | 794 项核心检查通过；[模拟器 CI](https://github.com/MinJung-Go/CompositionHelper/actions/runs/34434712918)、[IPA 构建](https://github.com/MinJung-Go/CompositionHelper/actions/runs/34434712835)通过；ZIP 完整性通过 |
 
-两端均包含美化编辑器、真人拍摄检查清单和流式临时预览。iOS IPA 大小 4,018,969 字节，仍需 iloader 等签名后安装。Android 12 项设备用例仅编译，iOS 截图工作流不覆盖流式交互。真实 Gemini 首预览耗时及取消/断网/保存端到端行为待真机验收，未承诺性能提升倍率。实施计划见 [AI_STREAMING.md](AI_STREAMING.md)。
+两端均包含美化编辑器、真人拍摄检查清单和流式临时预览。iOS IPA 大小 4,018,969 字节，仍需 iloader 等签名后安装。Android 12 项设备用例仅编译，iOS 截图工作流不覆盖流式交互。真实 Gemini 首预览耗时及取消/断网/保存端到端行为待真机验收，未承诺性能提升倍率。实施计划见 [AI_STREAMING.md](../architecture/AI_STREAMING.md)。
 
 ## 可追溯基线
 
@@ -35,7 +35,7 @@
 
 ## 安装与更新
 
-Android Debug：使用对应设备安装，见 [测试指南](TESTING.md)。更新必须考虑 package ID、签名证书与 versionCode；签名不一致不能直接覆盖。不要通过先卸载来默认解决安装问题，重要清单先导出。iOS 未签名 IPA 需要再签名，可参照 [iloader 指南](ILOADER_IOS_TESTING.md)。签名后的包与本表未签名包 SHA256 不同是正常现象。
+Android Debug：使用对应设备安装，见 [测试指南](TESTING.md)。更新必须考虑 package ID、签名证书与 versionCode；签名不一致不能直接覆盖。不要通过先卸载来默认解决安装问题，重要清单先导出。iOS 未签名 IPA 需要再签名，可参照 [iloader 指南](../guides/ILOADER_IOS_TESTING.md)。签名后的包与本表未签名包 SHA256 不同是正常现象。
 
 回退先导出待保留记录，确认旧包版本、来源和签名兼容性；旧版本未必识别新增状态。不要承诺降级一定保留应用数据。调色副本在系统相册中，应用数据与相册照片是不同存储范围。
 

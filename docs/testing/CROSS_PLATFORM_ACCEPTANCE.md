@@ -137,4 +137,4 @@ Android 安装包：`build/checklists/2026-09-10/CompositionHelper-android.apk`�
 | 退出或换图后旧响应不覆盖新图 | 待真机 | 待真机 |
 | 同照片/模型/网络重复 3 次记录首预览和完整响应耗时 | 待实测 | 待实测 |
 
-实施与验证边界见 [AI_STREAMING.md](AI_STREAMING.md)。
+实施与验证边界见 [AI_STREAMING.md](../architecture/AI_STREAMING.md)。

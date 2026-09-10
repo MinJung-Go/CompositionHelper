@@ -1,6 +1,6 @@
 # Android 安装、构建与使用
 
-更新：2026-09-10。源码在 `master` 分支；它是 Android 分支，不含 Xcode 工程。架构见 [ARCHITECTURE.md](ARCHITECTURE.md)。
+更新：2026-09-10。源码在 `master` 分支；它是 Android 分支，不含 Xcode 工程。架构见 [ARCHITECTURE.md](../architecture/ARCHITECTURE.md)。
 
 ## 构建环境
 
@@ -22,7 +22,7 @@ java -version
 ./gradlew :app:assembleDebug --no-daemon --max-workers=2
 ```
 
-APK 位于 `app/build/outputs/apk/debug/app-debug.apk`。远端未推送的功能不会随 clone 出现，请核对 [交付记录](RELEASES.md) 的提交号。
+APK 位于 `app/build/outputs/apk/debug/app-debug.apk`。远端未推送的功能不会随 clone 出现，请核对 [交付记录](../testing/RELEASES.md) 的提交号。
 
 ## 安装与入口
 
@@ -46,11 +46,11 @@ CameraX 预览当前使用 **COMPATIBLE / TextureView**，并通过 ViewPort 关
 - 构图工作室主要使用系统 `OpenDocument` 选图，并尝试保留所选 URI 的读取授权。
 - 代码和 Manifest 仍保留部分独立相册读取权限逻辑；不能把整个相册权限描述为所有系统选图的固定前置条件。
 
-数据和备份实际范围见 [DATA_PRIVACY.md](DATA_PRIVACY.md)。
+数据和备份实际范围见 [DATA_PRIVACY.md](../reference/DATA_PRIVACY.md)。
 
 ## 测试与故障定位
 
-[TESTING.md](TESTING.md)包含 JVM、lint、设备测试命令及报告位置。当前 CI 只执行 Debug APK 构建，测试结果需另外保存。
+[TESTING.md](../testing/TESTING.md)包含 JVM、lint、设备测试命令及报告位置。当前 CI 只执行 Debug APK 构建，测试结果需另外保存。
 
 - 构建失败先记录第一条错误、JDK、SDK 和依赖缓存状态；不要默认删除所有缓存。
 - 无设备先检查 `adb devices` 和手机授权；Linux 模拟器缺少 KVM 加速可能无法在合理时间启动。
@@ -60,4 +60,4 @@ CameraX 预览当前使用 **COMPATIBLE / TextureView**，并通过 ViewPort 关
 
 ## 发布边界
 
-当前 Debug APK 是测试包。项目仍使用示例 package ID，正式 release signingConfig 尚未配置；没有完成正式渠道发布验收。版本递增、签名、回退与证据要求见 [RELEASES.md](RELEASES.md)。真实渠道政策应在发布时重新核实，这里不承诺审核时长。
+当前 Debug APK 是测试包。项目仍使用示例 package ID，正式 release signingConfig 尚未配置；没有完成正式渠道发布验收。版本递增、签名、回退与证据要求见 [RELEASES.md](../testing/RELEASES.md)。真实渠道政策应在发布时重新核实，这里不承诺审核时长。

@@ -62,7 +62,7 @@ CI 截图上传为 `editor-review`，IPA 上传为 `CompositionHelper-unsigned`�
 
 ## 两端一致性检查
 
-1. 对照 `docs/SHOOTING_CHECKLIST.json`，确认 12 个稳定 ID、分组、标题、描述与两端原生数组一致。
+1. 对照 `docs/reference/SHOOTING_CHECKLIST.json`，确认 12 个稳定 ID、分组、标题、描述与两端原生数组一致。
 2. 同一配方和参考像素比较输出，记录舍入容差；不要用不同尺寸预览或 JPEG 二次压缩后的文件代替原始像素比较。
 3. 用 [验收表](CROSS_PLATFORM_ACCEPTANCE.md) 按真实设备分别执行；不同平台独立记录，不能互相代签。
 4. 截图至少覆盖小屏、大字体、空状态、图片加载及错误恢复；Android 横屏当前受锁定配置限制，记录为未支持，而非通过。

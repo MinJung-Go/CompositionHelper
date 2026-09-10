@@ -1,6 +1,6 @@
 # Android 构建说明
 
-> 详细的安装、构建和配置指南已迁移至 [docs/ANDROID.md](docs/ANDROID.md)
+> 详细的安装、构建和配置指南已迁移至 [docs/guides/ANDROID.md](docs/guides/ANDROID.md)
 
 ## 快速构建
 
@@ -25,5 +25,5 @@ java -version
 
 ## 更多信息
 
-- [完整 Android 文档](docs/ANDROID.md)
+- [完整 Android 文档](docs/guides/ANDROID.md)
 - [项目 README](README.md)

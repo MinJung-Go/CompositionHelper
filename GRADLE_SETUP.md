@@ -29,6 +29,6 @@ git commit -m "Add gradle-wrapper.jar"
 
 ## 更多信息
 
-- [完整 Android 文档](docs/ANDROID.md)
+- [完整 Android 文档](docs/guides/ANDROID.md)
 
-Wrapper 下载地址由 `gradle/wrapper/gradle-wrapper.properties` 控制，当前为腾讯镜像的 Gradle 8.2 ZIP。不要绕过 Wrapper 任意改用系统 Gradle；如更换镜像，应作为独立构建配置改动验证。统一测试命令见 [TESTING.md](docs/TESTING.md)。
+Wrapper 下载地址由 `gradle/wrapper/gradle-wrapper.properties` 控制，当前为腾讯镜像的 Gradle 8.2 ZIP。不要绕过 Wrapper 任意改用系统 Gradle；如更换镜像，应作为独立构建配置改动验证。统一测试命令见 [TESTING.md](docs/testing/TESTING.md)。

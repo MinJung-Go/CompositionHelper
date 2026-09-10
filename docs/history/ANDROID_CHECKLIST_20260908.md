@@ -1,6 +1,6 @@
 # Android 历史 Checklist · 2026-09-08
 
-> 历史快照，保留当时的检查状态和后续增补，不作为当前发布门槛。当前状态以 [已知问题](../KNOWN_ISSUES.md)、[开发验收表](../CROSS_PLATFORM_ACCEPTANCE.md) 和 [交付记录](../RELEASES.md) 为准。
+> 历史快照，保留当时的检查状态和后续增补，不作为当前发布门槛。当前状态以 [已知问题](../testing/KNOWN_ISSUES.md)、[开发验收表](../testing/CROSS_PLATFORM_ACCEPTANCE.md) 和 [交付记录](../testing/RELEASES.md) 为准。
 
 梳理日期：2026-09-08；基于提交 `8d9b121` 的当前 Android 工作区。
 
@@ -139,7 +139,7 @@
 - [ ] 五项设备测试执行验收：已编译；本机软件模拟器 package 服务异常，安装失败，未取得运行结果。
 - [ ] 跨品牌真机验收、Android 实际联网验证与 API 24–25 色彩管理验证。
 
-实现与验证说明见 [AI_COLOR.md](../AI_COLOR.md)。
+实现与验证说明见 [AI_COLOR.md](../architecture/AI_COLOR.md)。
 
 ## 10. 选图故障与视觉改版
 
@@ -152,4 +152,4 @@
 
 ## 11. 相机修复与复核
 
-顶部安全区测量、控件隐藏导致的裁剪变化、相机失败反馈、裁剪坐标映射、过期帧回调、矩形交集、螺旋对齐及静态分析线程均已修复。37 项 JVM 测试通过，Debug 构建和 lint 通过；实际相机验收仍待完成。详见 [复核报告](../REVIEW_20260908.md) 与 [构图产品调研](../COMPOSITION_MARKET.md)。
+顶部安全区测量、控件隐藏导致的裁剪变化、相机失败反馈、裁剪坐标映射、过期帧回调、矩形交集、螺旋对齐及静态分析线程均已修复。37 项 JVM 测试通过，Debug 构建和 lint 通过；实际相机验收仍待完成。详见 [复核报告](REVIEW_20260908.md) 与 [构图产品调研](../product/COMPOSITION_MARKET.md)。

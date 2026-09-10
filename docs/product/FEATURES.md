@@ -1,6 +1,6 @@
 # 构图类型详解
 
-> 以下为构图概念和使用建议。19 种辅助线不代表智能推荐算法覆盖所有类型；实际覆盖与验收边界见 [架构文档](ARCHITECTURE.md) 和 [已知问题](KNOWN_ISSUES.md)。
+> 以下为构图概念和使用建议。19 种辅助线不代表智能推荐算法覆盖所有类型；实际覆盖与验收边界见 [架构文档](../architecture/ARCHITECTURE.md) 和 [已知问题](../testing/KNOWN_ISSUES.md)。
 
 > CompositionHelper 支持的 19 种构图类型，分为经典 / 现代 / 视角三大分类
 
@@ -396,4 +396,4 @@
 
 ---
 
-**返回 [主 README](../README.md)**
+**返回 [主 README](../../README.md)**
