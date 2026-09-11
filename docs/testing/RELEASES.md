@@ -1,8 +1,19 @@
 # 版本、构建与交付记录
 
-更新：2026-09-10。当前为开发测试交付，没有完成正式商店发布流程。本表区分源码、已生成安装包和已验证设备范围。
+更新：2026-09-11。当前为开发测试交付，没有完成正式商店发布流程。本表区分源码、已生成安装包和已验证设备范围。
 
-## 最新流式版本（2026-09-10）
+## GLM 测试版本（2026-09-11）
+
+默认 `glm-5.3-flash`，`thinking.type=enabled`、`reasoning_effort=max`，保留 Gemini 切换。新增国内 Key 帮助入口；凭据仍仅在内存中。真人步骤见 [GLM 测试指南](../guides/GLM_TESTING.md)。
+
+| 平台 / 源码 | 安装包（相对 iOS 工作区） | SHA256 | 已完成验证 |
+|---|---|---|---|
+| Android `ebc98a2` | `build/glm/ebc98a2/CompositionHelper-android.apk` | `fd9b3588561a747502d6493de5d9b00554f8ff299ba9ff8723fdeecd9e5634e7` | 58 项 JVM 测试通过、Debug APK 构建与 lint 检查通过；设备测试仅编译 |
+| iOS `d4961c2` | `build/glm/d4961c2/CompositionHelper.ipa` | `34433ce439a7d3995c52b4a343159b3a7f3d7790cb58cc8ef8e8da3440901f79` | 805 项核心检查通过，[IPA 编译与打包](https://github.com/MinJung-Go/CompositionHelper/actions/runs/34587752720)通过，ZIP 完整性通过 |
+
+iOS IPA 大小 4,024,683 字节，仍需 iloader 签名安装。[模拟器 CI](https://github.com/MinJung-Go/CompositionHelper/actions/runs/34587752726)的截图不覆盖真实 GLM 网络交互。未使用用户 Key 进行真实调用，权限、额度、思考耗时、预览及保存须由真人验收。下面为历史记录。
+
+## 流式版本（2026-09-10）
 
 已推送：Android 源码 `08a7451`，iOS 源码 `a96bfc4`。下面旧记录保留为构建当时的快照，后续状态以本节为准。
 
