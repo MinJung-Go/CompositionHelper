@@ -87,28 +87,40 @@ private final class ColorNetworkDelegate: NSObject, URLSessionTaskDelegate {
 struct GeminiColorService {
     func analyze(jpeg: Data, key: String, model: String, onPreview: (ColorPlan) async throws -> Void = { _ in }) async throws -> ColorPlan {
         guard !key.isEmpty, key.utf8.allSatisfy({ $0 >= 33 && $0 <= 126 }),
-              model.range(of: "^gemini-[A-Za-z0-9._-]{1,80}$", options:.regularExpression) != nil else { throw ColorFailure("请填写有效密钥和模型名称") }
+              model.range(of: "^(gemini-[A-Za-z0-9._-]{1,80}|glm-5\\.3-flash)$", options:.regularExpression) != nil else { throw ColorFailure("请填写有效密钥和模型名称") }
+        let glm = model.hasPrefix("glm-")
         let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest = 150; config.timeoutIntervalForResource = 180
+        config.timeoutIntervalForRequest = glm ? 300 : 150; config.timeoutIntervalForResource = glm ? 360 : 180
         let session = URLSession(configuration: config, delegate: ColorNetworkDelegate(), delegateQueue: nil)
         defer { session.invalidateAndCancel() }
-        var request = URLRequest(url: URL(string:"https://generativelanguage.googleapis.com/v1beta/models/\(model):streamGenerateContent?alt=sse")!)
+        let endpoint = glm ? "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+            : "https://generativelanguage.googleapis.com/v1beta/models/\(model):streamGenerateContent?alt=sse"
+        var request = URLRequest(url: URL(string: endpoint)!)
         request.httpMethod = "POST"
-        request.setValue(key, forHTTPHeaderField:"x-goog-api-key")
+        request.setValue(glm ? "Bearer \(key)" : key, forHTTPHeaderField: glm ? "Authorization" : "x-goog-api-key")
         request.setValue("application/json", forHTTPHeaderField:"Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: [
+        let body: [String: Any] = glm ? [
+            "model": model, "stream": true, "thinking": ["type": "enabled", "clear_thinking": false],
+            "reasoning_effort": "max", "temperature": 1.0, "top_p": 0.95, "max_tokens": 32768,
+            "response_format": ["type": "json_object"],
+            "messages": [["role": "user", "content": [
+                ["type": "text", "text": Self.prompt],
+                ["type": "image_url", "image_url": ["url": "data:image/jpeg;base64," + jpeg.base64EncodedString()]]
+            ]]]
+        ] : [
             "contents":[["parts":[["text": Self.prompt], ["inline_data":["mime_type":"image/jpeg","data":jpeg.base64EncodedString()]]]]],
             "generationConfig":["temperature":0.15,"responseMimeType":"application/json","maxOutputTokens":8192]
-        ])
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (bytes, response) = try await session.bytes(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { throw ColorFailure("AI 请求失败（HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0)），请检查密钥、模型或额度") }
-        var decoder = ColorStreamDecoder()
+        var decoder = ColorStreamDecoder(glm: glm)
         var line = Data()
         var total = 0
         for try await byte in bytes {
             try Task.checkCancellation()
             total += 1
-            guard total <= 256000 else { throw ColorFailure("模型响应过长") }
+            guard total <= (glm ? 2_000_000 : 256000) else { throw ColorFailure("模型响应过长") }
             if byte == 10 {
                 if line.last == 13 { line.removeLast() }
                 guard let value = String(data: line, encoding: .utf8) else { throw ColorFailure("AI 响应编码无效") }

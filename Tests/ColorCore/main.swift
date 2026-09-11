@@ -81,4 +81,31 @@ _ = try multi.line("data: {"); _ = try multi.line("data: " + multiPayload.dropFi
 _ = try multi.line(#"data: {"usageMetadata":{}}"#); _ = try multi.line("")
 let multiResult = try multi.finish()
 check(multiResult == identity, "multiline SSE and trailing usage metadata")
+
+func glmSend(_ d: inout ColorStreamDecoder, _ text: String, finish: String? = nil, reasoning: String = "") throws -> ColorPlan? {
+    var choice: [String: Any] = ["index": 0, "delta": ["content": text, "reasoning_content": reasoning]]
+    if let finish = finish { choice["finish_reason"] = finish }
+    let data = try JSONSerialization.data(withJSONObject: ["choices": [choice]])
+    _ = try d.line("data: " + String(data: data, encoding: .utf8)!)
+    return try d.line("")
+}
+var glm = ColorStreamDecoder(glm: true)
+let glmThinking = try glmSend(&glm, "", reasoning: "not JSON and must be ignored")
+check(glmThinking == nil, "GLM ignores reasoning")
+let glmFirst = try glmSend(&glm, #"{"basic":{"exposure":0."#)
+check(glmFirst == nil, "GLM waits for whole number")
+let glmPartial = try glmSend(&glm, #"2},"intent":"#)
+check(glmPartial?.basic["exposure"] == 0.2, "GLM early preview")
+_ = try glmSend(&glm, #""自然肤色"}"#, finish: "stop")
+_ = try glm.line(#"data: {"choices":[],"usage":{}}"#); _ = try glm.line("")
+_ = try glm.line("data: [DONE]"); _ = try glm.line("")
+let glmFinal = try glm.finish()
+check(glmFinal.intent == "自然肤色", "GLM final recipe and trailing usage")
+check(streamRejects { var d = ColorStreamDecoder(glm: true); _ = try glmSend(&d, #"{"basic":{}}"#); _ = try d.finish() }, "GLM missing stop")
+check(streamRejects { var d = ColorStreamDecoder(glm: true); _ = try glmSend(&d, "", finish: "length") }, "GLM length limit")
+check(streamRejects { var d = ColorStreamDecoder(glm: true); _ = try glmSend(&d, "", finish: "sensitive") }, "GLM filtered output")
+check(streamRejects { var d = ColorStreamDecoder(glm: true); _ = try glmSend(&d, #"{"basic":{"exposure":99}}"#, finish: "stop"); _ = try d.finish() }, "GLM invalid parameters")
+check(streamRejects { var d = ColorStreamDecoder(glm: true); _ = try glmSend(&d, #"{"basic":{},"# , finish: "stop"); _ = try d.finish() }, "GLM truncated JSON")
+check(streamRejects { var d = ColorStreamDecoder(glm: true); _ = try d.line(#"data: {"error":{"code":"1301","message":"private"}}"#); _ = try d.line("") }, "GLM error envelope")
+check(streamRejects { var d = ColorStreamDecoder(glm: true); _ = try glmSend(&d, #"{"basic":{}}"#, finish: "stop"); _ = try glmSend(&d, "extra") }, "GLM content after stop")
 print("PASS: \(checks) checks (recipe validation, RGB semantics, precision, cross-platform pixels)")

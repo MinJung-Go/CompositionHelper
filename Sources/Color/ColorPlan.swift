@@ -172,6 +172,8 @@ struct ColorPixelEngine {
 
 /// Pure SSE/JSON boundary decoder, shared by production and the Linux regression harness.
 struct ColorStreamDecoder {
+    private let glm: Bool
+    init(glm: Bool = false) { self.glm = glm }
     private var event = ""
     private var text = ""
     private var total = 0
@@ -181,7 +183,7 @@ struct ColorStreamDecoder {
 
     mutating func line(_ line: String) throws -> ColorPlan? {
         total += line.utf8.count + 1
-        guard total <= 256000 else { throw ColorFailure("模型响应过长") }
+        guard total <= (glm ? 2_000_000 : 256000) else { throw ColorFailure("模型响应过长") }
         if !line.isEmpty {
             if line.hasPrefix("data:") {
                 var value = String(line.dropFirst(5))
@@ -199,15 +201,28 @@ struct ColorStreamDecoder {
               (root["promptFeedback"] as? [String: Any])?["blockReason"] == nil else {
             throw ColorFailure("AI 响应无效或被拦截")
         }
-        guard let candidate = (root["candidates"] as? [[String: Any]])?.first else { return nil }
-        guard !stopped, (candidate["index"] as? Int ?? 0) == 0 else { throw ColorFailure("AI 候选结果无效") }
-        let parts = (candidate["content"] as? [String: Any])?["parts"] as? [[String: Any]] ?? []
-        text += parts.filter { ($0["thought"] as? Bool) != true }.compactMap { $0["text"] as? String }.joined()
-        guard text.utf8.count <= 64000 else { throw ColorFailure("调色方案过长") }
-        if let reason = candidate["finishReason"] as? String {
-            guard reason == "STOP" else { throw ColorFailure("AI 未返回完整方案") }
-            stopped = true
+        if glm {
+            guard let choice = (root["choices"] as? [[String: Any]])?.first else { return nil }
+            guard !stopped, (choice["index"] as? Int ?? 0) == 0 else { throw ColorFailure("AI 候选结果无效") }
+            let delta = choice["delta"] as? [String: Any] ?? [:]
+            guard delta["tool_calls"] == nil || delta["tool_calls"] is NSNull else { throw ColorFailure("AI 返回了不支持的工具调用") }
+            // reasoning_content is not the recipe and must never reach the preview parser.
+            text += delta["content"] as? String ?? ""
+            if let reason = choice["finish_reason"] as? String {
+                guard reason == "stop" else { throw ColorFailure("AI 未返回完整方案") }
+                stopped = true
+            }
+        } else {
+            guard let candidate = (root["candidates"] as? [[String: Any]])?.first else { return nil }
+            guard !stopped, (candidate["index"] as? Int ?? 0) == 0 else { throw ColorFailure("AI 候选结果无效") }
+            let parts = (candidate["content"] as? [String: Any])?["parts"] as? [[String: Any]] ?? []
+            text += parts.filter { ($0["thought"] as? Bool) != true }.compactMap { $0["text"] as? String }.joined()
+            if let reason = candidate["finishReason"] as? String {
+                guard reason == "STOP" else { throw ColorFailure("AI 未返回完整方案") }
+                stopped = true
+            }
         }
+        guard text.utf8.count <= 64000 else { throw ColorFailure("调色方案过长") }
         guard let prefix = Self.completePrefix(text), let plan = try? ColorPlan.decode(Data(prefix.utf8)), plan != previous else { return nil }
         previous = plan
         return plan

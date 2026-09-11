@@ -12,13 +12,13 @@ flowchart LR
     Person --> IOS[iOS 原生应用]
     Android --> AOS[CameraX / ML Kit / MediaStore]
     IOS --> IOSAPI[AVFoundation / Vision / PhotoKit]
-    Android -->|点击 AI 后上传缩略图| Gemini[Gemini HTTPS API]
+    Android -->|点击 AI 后上传缩略图| Gemini[所选 Gemini / GLM HTTPS API]
     IOS -->|点击 AI 后上传缩略图| Gemini
     Rules[清单标准 / 功能约定 / 参考像素] -.分别落实.-> Android
     Rules -.分别落实.-> IOS
 ```
 
-实时构图建议在设备上处理；拍后 AI 调色才调用 Gemini。建议分数不等于经校准的审美评分。没有对象分割、生成式重绘、用户账号服务或检查记录云同步。
+实时构图建议在设备上处理；拍后 AI 调色才调用所选 Gemini 或 GLM。建议分数不等于经校准的审美评分。没有对象分割、生成式重绘、用户账号服务或检查记录云同步。
 
 ## 2. 模块与职责
 
@@ -66,7 +66,7 @@ flowchart TD
     Source[原始 URI 或图片 Data] --> Decode[纠正方向 / sRGB 预览]
     Decode --> Manual[本机手动参数]
     Decode --> Click[使用者点击 AI 调色]
-    Click --> API[缩略图与提示词发送至 Gemini]
+    Click --> API[缩略图与提示词发送至所选 Gemini 或 GLM]
     API --> Validate[JSON 解析与范围校验]
     Validate --> Plan[有效调色配方]
     Manual --> Plan
@@ -85,7 +85,7 @@ Android 使用 IO/Default 调度器读取和计算；iOS 图片工作在 actor�
 
 ## 6. 网络与数据边界
 
-只有主动点击 AI 才发送重新编码的 JPEG 缩略图及提示词；不附原片 EXIF。网络固定到 Gemini HTTPS 接口，两端均禁止重定向并限制响应大小。API Key 放请求头，不写进安装包、日志或持久化设置。
+只有主动点击 AI 才发送重新编码的 JPEG 缩略图及提示词；不附原片 EXIF。网络固定到所选 Gemini 或智谱 GLM 的 HTTPS 接口，两端均禁止重定向并限制响应大小。API Key 放请求头，不写进安装包、日志或持久化设置。
 
 Android Key 保存在进程级 `GeminiColorSession`；iOS 保存在当前 `ColorEditorModel`。生命周期并不相同。应用不代理 Apple 账号登录；iloader 属于外部安装工具。详细数据去向见 [数据与隐私](../reference/DATA_PRIVACY.md)。
 
@@ -153,7 +153,7 @@ Android 的支付方式按所选渠道单独设计，设备存储与 AI 引导�
 
 默认流程为：获取我的 Key → 官方页面本人登录/注册并复制 → 回到 App 主动粘贴 → 保存到此设备。已有 Key 可跳过帮助。保存仅做本机格式检查，首次实际 AI 调色才发起图像请求；不为验证密钥暗中上传照片或发起额外模型调用。高级模型配置折叠，错误按权限、地区、模型、网络和额度分类。
 
-应用不替用户注册，不收集供应商密码，不自动抓取登录后页面，不在回跳 URL 中传 Key，不后台读取剪贴板。官方流程、页面跳转与数据同意见 [BYOK_ONBOARDING.md](BYOK_ONBOARDING.md)。Gemini 只是当前已实现供应商，目标地区确认后再确定首发引导，不自动添加未经验证的接口。
+应用不替用户注册，不收集供应商密码，不自动抓取登录后页面，不在回跳 URL 中传 Key，不后台读取剪贴板。官方流程、页面跳转与数据同意见 [BYOK_ONBOARDING.md](BYOK_ONBOARDING.md)。当前已实现 Gemini 和智谱 GLM，默认 GLM-5.3-Flash；服务商获取 Key 入口已提供，安全持久化和完整三步引导仍待实现。
 
 ## 13. 保持现有流式和隐私边界
 
@@ -165,6 +165,8 @@ Android 的支付方式按所选渠道单独设计，设备存储与 AI 引导�
 
 ## 14. 实施状态与验收
 
-已实现：两端本机编辑、真人清单、Gemini 流式直连。待实现：单笔买断、Key 安全持久化和三步新手引导。小后端、AI 次数包及账号体系不在当前路线。
+已实现：两端本机编辑、真人清单、Gemini/GLM 流式直连。待实现：单笔买断、Key 安全持久化和三步新手引导。小后端、AI 次数包及账号体系不在当前路线。
 
 持久化验收覆盖重启、替换失败、清除、系统锁定和重签名；引导需在目标地区用新/旧账号实测。StoreKit 独立验证购买取消、pending、恢复与撤销。计划见 [PRODUCT_STRATEGY.md](../product/PRODUCT_STRATEGY.md)，实际已构建内容见 [RELEASES.md](../testing/RELEASES.md)。
+
+GLM 当前适配、深度思考及真人测试边界见 [GLM 测试指南](../guides/GLM_TESTING.md)。

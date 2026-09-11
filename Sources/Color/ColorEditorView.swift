@@ -388,14 +388,31 @@ private struct StudioSettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("连接 Gemini") {
-                    SecureField("Gemini API Key", text: $key)
+                Section("AI 服务") {
+                    Picker("服务商", selection: Binding(
+                        get: { model.hasPrefix("glm-") },
+                        set: { useGLM in
+                            key = ""
+                            model = useGLM ? "glm-5.3-flash" : "gemini-3.5-flash"
+                        }
+                    )) {
+                        Text("智谱 GLM").tag(true)
+                        Text("Google Gemini").tag(false)
+                    }
+                    SecureField("API Key", text: $key)
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
-                    TextField("模型", text: $model)
-                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    if model.hasPrefix("glm-") {
+                        Text("模型：GLM-5.3-Flash · 深度思考已开启")
+                    } else {
+                        TextField("模型", text: Binding(get: { model }, set: { if !$0.hasPrefix("glm-") { model = $0 } }))
+                            .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    }
+                    Link("获取 API Key", destination: URL(string: model.hasPrefix("glm-")
+                        ? "https://docs.bigmodel.cn/cn/guide/start/quick-start"
+                        : "https://aistudio.google.com/apikey")!)
                 }
                 Section {
-                    Text("点击 AI 调色时，会将照片缩略图发送给 Gemini。手动调色在本机完成。")
+                    Text("点击 AI 调色时，会将照片缩略图发送给所选服务商。手动调色在本机完成。")
                     Text("密钥只保留在当前编辑器内存中，关闭编辑器后清除。")
                 }
                 Section { Button("清除密钥", role: .destructive) { key = "" } }

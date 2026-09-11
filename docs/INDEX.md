@@ -36,6 +36,8 @@
 
 ## 使用指南：guides
 
+- [GLM 调色测试](guides/GLM_TESTING.md)：GLM-5.3-Flash、深度思考、配置与真人验收。
+
 - [Android 安装、构建与使用](guides/ANDROID.md)。
 - [iOS 安装、构建与使用](guides/IOS.md)。
 - [Windows 使用 iloader](guides/ILOADER_IOS_TESTING.md)。

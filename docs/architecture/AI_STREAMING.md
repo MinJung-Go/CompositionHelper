@@ -36,3 +36,7 @@
 - 没有真实 Gemini 请求的实测速率证据前，不承诺缩短秒数或倍率。
 
 参考：[Gemini 流式接口](https://ai.google.dev/api/generate-content)、[结构化输出](https://ai.google.dev/gemini-api/docs/structured-output)。
+
+## GLM 扩展（2026-09-11）
+
+双端新增智谱 `glm-5.3-flash`，复用配方校验、临时预览及提交/撤销逻辑。GLM 使用 Chat Completions SSE，保持 `thinking.type=enabled` 和 `reasoning_effort=max`；仅正式 content 更新预览。详见 [协议与测试说明](../guides/GLM_TESTING.md)。原 Gemini 256 KB 响应限制保持，GLM 允许 2 MB 以容纳思考事件，两端配方均限制 64 KB。

@@ -10,7 +10,7 @@ final class ColorEditorModel: ObservableObject {
     @Published var plan = ColorPlan()
     @Published var strength = 1.0
     @Published var key = ""
-    @Published var model = "gemini-3.5-flash"
+    @Published var model = "glm-5.3-flash"
     @Published var busy = false
     @Published var status = "选择照片开始调色"
     @Published var error: String?
