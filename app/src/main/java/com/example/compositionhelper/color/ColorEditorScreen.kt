@@ -441,19 +441,36 @@ private fun AdjustmentSlider(label: String, value: Float, range: ClosedFloatingP
 private fun AiColorSettings(onDismiss: () -> Unit) {
     var apiKey by remember { mutableStateOf(GeminiColorSession.apiKey) }
     var model by remember { mutableStateOf(GeminiColorSession.model) }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("Gemini 调色设置") }, text = {
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("AI 调色设置") }, text = {
         Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = model.startsWith("glm-"), onClick = {
+                    if (!model.startsWith("glm-")) { model = GeminiColorProtocol.GLM_MODEL; apiKey = "" }
+                }, label = { Text("智谱 GLM") })
+                FilterChip(selected = !model.startsWith("glm-"), onClick = {
+                    if (model.startsWith("glm-")) { model = GeminiColorProtocol.DEFAULT_MODEL; apiKey = "" }
+                }, label = { Text("Gemini") })
+            }
+            TextButton(onClick = {
+                uriHandler.openUri(if (model.startsWith("glm-")) "https://docs.bigmodel.cn/cn/guide/start/quick-start"
+                    else "https://aistudio.google.com/apikey")
+            }) { Text("获取 API Key") }
             Text("填写你自己的 API Key。密钥仅保留在本次应用运行中，关闭进程后需要重新填写。")
             OutlinedTextField(value = apiKey, onValueChange = { apiKey = it }, label = { Text("API Key") },
                 visualTransformation = PasswordVisualTransformation(), singleLine = true)
-            OutlinedTextField(value = model, onValueChange = { model = it }, label = { Text("模型名称") }, singleLine = true)
-            Text("保存设置后点击 AI 调色，才会发送当前照片的缩略图。", style = MaterialTheme.typography.bodySmall)
+            if (model.startsWith("glm-")) {
+                Text("模型：GLM-5.3-Flash · 深度思考已开启")
+            } else {
+                OutlinedTextField(value = model, onValueChange = { if (!it.startsWith("glm-")) model = it }, label = { Text("模型名称") }, singleLine = true)
+            }
+            Text("保存设置后点击 AI 调色，才会将当前照片的缩略图发送给所选服务商。", style = MaterialTheme.typography.bodySmall)
         }
     }, confirmButton = {
         TextButton(onClick = {
             GeminiColorSession.apiKey = apiKey.trim(); GeminiColorSession.model = model.trim(); onDismiss()
         }, enabled = apiKey.trim().isNotEmpty() && apiKey.trim().all { it.code in 33..126 } &&
-            GeminiColorProtocol.validModel(model.trim())) { Text("保存") }
+            GeminiColorProtocol.supportedModel(model.trim())) { Text("保存") }
     }, dismissButton = {
         Row {
             TextButton(onClick = { GeminiColorSession.apiKey = ""; apiKey = "" }) { Text("清除密钥") }

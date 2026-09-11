@@ -3,7 +3,7 @@ package com.example.compositionhelper.color
 import com.google.gson.JsonParser
 
 /** SSE framing and complete top-level JSON prefixes; never repairs an unfinished value. */
-class ColorStreamDecoder {
+class ColorStreamDecoder(private val glm: Boolean = false) {
     private var event = StringBuilder()
     private var text = ""
     private var total = 0
@@ -13,7 +13,7 @@ class ColorStreamDecoder {
 
     fun line(line: String): ColorPlan? {
         total += line.toByteArray(Charsets.UTF_8).size + 1
-        require(total <= 256000) { "模型响应过长" }
+        require(total <= if (glm) 2_000_000 else 256000) { "模型响应过长" }
         if (line.isNotEmpty()) {
             if (line.startsWith("data:")) {
                 if (event.isNotEmpty()) event.append('\n')
@@ -26,17 +26,27 @@ class ColorStreamDecoder {
         if (payload == "[DONE]") return null
         val root = JsonParser.parseString(payload).asJsonObject
         check(!root.has("error") && root.getAsJsonObject("promptFeedback")?.has("blockReason") != true) { "AI 响应被拦截" }
-        val candidates = root.getAsJsonArray("candidates") ?: return null
-        val candidate = candidates.firstOrNull()?.asJsonObject ?: return null
-        check(!stopped) { "完成标记后出现额外内容" }
-        check(candidate.get("index")?.asInt ?: 0 == 0) { "AI 候选结果无效" }
-        val parts = candidate.getAsJsonObject("content")?.getAsJsonArray("parts")
-        text += parts?.map { it.asJsonObject }?.filter { it.get("thought")?.asBoolean != true }
-            ?.joinToString("") { it.get("text")?.asString ?: "" } ?: ""
-        require(text.toByteArray(Charsets.UTF_8).size <= 64000) { "调色方案过长" }
-        candidate.get("finishReason")?.asString?.let {
-            check(it == "STOP") { "AI 未返回完整方案" }; stopped = true
+        if (glm) {
+            val choice = root.getAsJsonArray("choices")?.firstOrNull()?.asJsonObject ?: return null
+            check(!stopped && (choice.get("index")?.asInt ?: 0) == 0) { "AI 候选结果无效" }
+            val delta = choice.getAsJsonObject("delta")
+            check(delta?.get("tool_calls")?.takeUnless { it.isJsonNull } == null) { "AI 返回了不支持的工具调用" }
+            text += delta?.get("content")?.takeUnless { it.isJsonNull }?.asString ?: ""
+            choice.get("finish_reason")?.takeUnless { it.isJsonNull }?.asString?.let {
+                check(it == "stop") { "AI 未返回完整方案" }; stopped = true
+            }
+        } else {
+            val candidate = root.getAsJsonArray("candidates")?.firstOrNull()?.asJsonObject ?: return null
+            check(!stopped) { "完成标记后出现额外内容" }
+            check(candidate.get("index")?.asInt ?: 0 == 0) { "AI 候选结果无效" }
+            val parts = candidate.getAsJsonObject("content")?.getAsJsonArray("parts")
+            text += parts?.map { it.asJsonObject }?.filter { it.get("thought")?.asBoolean != true }
+                ?.joinToString("") { it.get("text")?.asString ?: "" } ?: ""
+            candidate.get("finishReason")?.asString?.let {
+                check(it == "STOP") { "AI 未返回完整方案" }; stopped = true
+            }
         }
+        require(text.toByteArray(Charsets.UTF_8).size <= 64000) { "调色方案过长" }
         val partial = completePrefix(text)?.let { runCatching { ColorPlanCodec.decode(it) }.getOrNull() }
         if (partial == previous) return null
         previous = partial

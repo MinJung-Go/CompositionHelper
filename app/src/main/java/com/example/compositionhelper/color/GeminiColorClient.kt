@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit
 /** Credentials intentionally live only in process memory, never in preferences, bundles or logs. */
 object GeminiColorSession {
     var apiKey: String = ""
-    var model: String = GeminiColorProtocol.DEFAULT_MODEL
+    var model: String = GeminiColorProtocol.GLM_MODEL
 }
 
 object GeminiColorClient {
@@ -26,20 +26,24 @@ object GeminiColorClient {
         .readTimeout(150, TimeUnit.SECONDS).callTimeout(180, TimeUnit.SECONDS)
         .followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false).build()
 
+    private val glmClient = client.newBuilder().readTimeout(300, TimeUnit.SECONDS)
+        .callTimeout(360, TimeUnit.SECONDS).build()
+
     suspend fun analyze(bitmap: Bitmap, apiKey: String, model: String, onPreview: suspend (ColorPlan) -> Unit = {}): ColorPlan = withContext(Dispatchers.IO) {
         require(apiKey.isNotBlank() && apiKey.all { it.code in 33..126 }) { "请填写有效的 API Key" }
-        require(GeminiColorProtocol.validModel(model)) { "模型名称格式无效" }
+        require(GeminiColorProtocol.supportedModel(model)) { "模型名称格式无效" }
         val data = ByteArrayOutputStream().use {
             check(bitmap.compress(Bitmap.CompressFormat.JPEG, 85, it)) { "缩略图编码失败" }
             Base64.encodeToString(it.toByteArray(), Base64.NO_WRAP)
         }
+        val glm = model.startsWith("glm-")
         val request = Request.Builder()
-            .url("https://generativelanguage.googleapis.com/v1beta/models/$model:streamGenerateContent?alt=sse")
-            .header("x-goog-api-key", apiKey)
-            .post(GeminiColorProtocol.request(data).toRequestBody("application/json; charset=utf-8".toMediaType())).build()
+            .url(if (glm) "https://open.bigmodel.cn/api/paas/v4/chat/completions" else "https://generativelanguage.googleapis.com/v1beta/models/$model:streamGenerateContent?alt=sse")
+            .header(if (glm) "Authorization" else "x-goog-api-key", if (glm) "Bearer $apiKey" else apiKey)
+            .post((if (glm) GeminiColorProtocol.glmRequest(data, model) else GeminiColorProtocol.request(data)).toRequestBody("application/json; charset=utf-8".toMediaType())).build()
         var result: ColorPlan? = null
         callbackFlow {
-            val call = client.newCall(request)
+            val call = (if (glm) glmClient else client).newCall(request)
             call.enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
                     close(IOException("网络连接失败或超时，请重试"))
@@ -52,7 +56,7 @@ object GeminiColorClient {
                     try {
                         response.use {
                             val source = it.body?.source() ?: error("模型响应为空")
-                            val decoder = ColorStreamDecoder()
+                            val decoder = ColorStreamDecoder(glm)
                             while (!source.exhausted()) {
                                 val line = source.readUtf8LineStrict(256000)
                                 decoder.line(line)?.let { plan -> if (!decoder.isComplete) trySend(plan to false) }

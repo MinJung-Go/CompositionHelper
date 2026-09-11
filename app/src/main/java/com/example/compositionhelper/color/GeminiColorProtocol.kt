@@ -6,6 +6,16 @@ import com.google.gson.JsonParser
 /** Pure wire protocol so malformed, blocked and truncated responses can be tested on the JVM. */
 object GeminiColorProtocol {
     const val DEFAULT_MODEL = "gemini-3.5-flash"
+    const val GLM_MODEL = "glm-5.3-flash"
+    fun supportedModel(model: String) = validModel(model) || model == GLM_MODEL
+    fun glmRequest(imageBase64: String, model: String): String = Gson().toJson(mapOf(
+        "model" to model, "stream" to true, "thinking" to mapOf("type" to "enabled", "clear_thinking" to false),
+        "reasoning_effort" to "max", "temperature" to 1.0, "top_p" to .95, "max_tokens" to 32768,
+        "response_format" to mapOf("type" to "json_object"),
+        "messages" to listOf(mapOf("role" to "user", "content" to listOf(
+            mapOf("type" to "text", "text" to PROMPT),
+            mapOf("type" to "image_url", "image_url" to mapOf("url" to "data:image/jpeg;base64,$imageBase64"))
+        )))))
     fun validModel(model: String) = model.matches(Regex("gemini-[A-Za-z0-9._-]{1,80}"))
     fun request(imageBase64: String): String = Gson().toJson(mapOf(
         "contents" to listOf(mapOf("parts" to listOf(mapOf("text" to PROMPT),
