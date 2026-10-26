@@ -1,0 +1,71 @@
+# Gradle files
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+gradle-8.2-bin.zip
+gradle-8.2/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Android Studio generated files and folders
+.idea/
+*.iml
+.DS_Store
+
+# Keystore files
+*.jks
+*.keystore
+
+# External native build folder generated in Android Studio 2.2 and later
+.externalNativeBuild
+.cxx/
+
+# Google Services (e.g. APIs or Firebase)
+google-services.json
+
+# Freeline
+freeline.py
+freeline/
+freeline_project_description.json
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/readme.md
+
+# Version control
+vcs.xml
+
+# lint
+lint/intermediates/
+lint/generated/
+lint/outputs/
+lint/tmp/
+lint-results*.html
+
+# Android Profiling
+*.hprof
+
+# Local agent workspace files
+AGENTS.md
+IDENTITY.md
+SOUL.md
+TOOLS.md
+USER.md
+BOOTSTRAP.md
+HEARTBEAT.md
+canvas/
+memory/
+skills/
+
+# Development artifacts (not part of the project)
+AI-PPT-*.tar.gz
+plane_tank_battle.py
+CODE_COMPLETE.md
+FINAL_SUMMARY.md
+
+# Nested git repositories
+CompositionHelper/
