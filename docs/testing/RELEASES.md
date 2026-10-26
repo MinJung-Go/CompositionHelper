@@ -1,6 +1,23 @@
 # 版本、构建与交付记录
 
-更新：2026-09-11。当前为开发测试交付，没有完成正式商店发布流程。本表区分源码、已生成安装包和已验证设备范围。
+更新：2026-10-26。当前为开发测试交付，没有完成正式商店发布流程。本表区分源码、已生成安装包和已验证设备范围。
+
+
+## 功能对齐版本（2026-10-26）
+
+统一相册构图分析入口、保存原片后调色、离线基础调整与 RGB 重置、进程级 Key 会话及 3200 万像素导出限制。原生 UI 可以采用不同控件；真机和真实供应商网络调用没有自动记为通过。
+
+| 平台 / 被测代码 | 自动验证 | 产物 / 证据 |
+|---|---|---|
+| Android `e0ae60e` | 60 项 JVM 测试，0 失败、0 错误、0 跳过；Debug 应用与设备测试 APK 编译通过；lint 0 错误、58 警告 | [Android CI 与报告](https://github.com/MinJung-Go/CompositionHelper/actions/runs/40290042302)，`app-debug` 和 `android-test-reports` artifacts |
+| iOS `0abfeac` | 866 项核心检查通过；模拟器编译、小屏/大字体/空状态/清单截图、Info.plist 检查通过 | [iOS CI](https://github.com/MinJung-Go/CompositionHelper/actions/runs/40289673173)，`editor-review` artifact |
+| iOS `0abfeac` | 未签名 Release IPA 编译与打包通过 | [IPA 构建](https://github.com/MinJung-Go/CompositionHelper/actions/runs/40289673063)，`CompositionHelper-unsigned` artifact |
+
+本轮 Windows 工作机没有 Android / Xcode 工具链，上述编译与回归实际运行于 GitHub Actions。新增离线统计用例在两端使用完全相同的固定输入；大图测试覆盖边界、超限、预览放行及溢出保护。共享清单、四张样片及参考调色输入保持一致。
+
+Android 设备交互用例仅编译，没有本轮执行证据；iOS 截图不等于导航、相机和真实 AI 调用的端到端测试。相册权限、拍摄成片、保存结果、Key 进程重启及 GLM/Gemini 的真实调用需按 [双端验收表](CROSS_PLATFORM_ACCEPTANCE.md) 在手机上核对。正式签名、支付和 Key 安全持久化不属于已交付功能。
+
+后续仅补充文档、文本换行与 Git 属性；实际功能代码的验证提交号如上。下列 2026-09 记录是重建仓库前的历史快照，旧提交、工作流和本地安装包路径不作为当前下载入口或本轮验证证据。
 
 ## GLM 测试版本（2026-09-11）
 
