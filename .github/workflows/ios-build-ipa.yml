@@ -1,0 +1,110 @@
+name: iOS Build IPA
+
+on:
+  push:
+    branches: [ ios ]
+  pull_request:
+    branches: [ ios ]
+  workflow_dispatch:
+
+env:
+  SCHEME: CompositionHelper
+  PROJECT: CompositionHelper.xcodeproj
+
+jobs:
+  build:
+    name: Build Unsigned IPA
+    runs-on: macos-14
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v5
+
+    - name: Setup Xcode
+      run: |
+        echo "=== Available Xcode versions ==="
+        ls /Applications/ | grep Xcode
+        XCODE_PATH=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
+        echo "Using: $XCODE_PATH"
+        sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
+        xcodebuild -version
+        swift --version
+
+    - name: Verify project
+      run: |
+        echo "=== Schemes ==="
+        xcodebuild -project "$PROJECT" -list
+        echo ""
+        echo "=== Source files ==="
+        find Sources -name "*.swift" | sort
+        echo ""
+        echo "=== Key build settings ==="
+        xcodebuild -project "$PROJECT" -scheme "$SCHEME" -showBuildSettings 2>/dev/null | grep -E "INFOPLIST_FILE|PRODUCT_BUNDLE|SRCROOT|SOURCE_ROOT|SWIFT_VERSION" || true
+
+    - name: Build
+      run: |
+        BUILD_DIR=$RUNNER_TEMP/build
+        # Run xcodebuild and capture exit code, always show full output
+        xcodebuild build \
+          -project "$PROJECT" \
+          -scheme "$SCHEME" \
+          -sdk iphoneos \
+          -configuration Release \
+          -derivedDataPath "$BUILD_DIR" \
+          CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGN_ENTITLEMENTS="" \
+          COMPILER_INDEX_STORE_ENABLE=NO \
+          > $RUNNER_TEMP/xcodebuild.log 2>&1 || BUILD_RESULT=$?
+
+        # Always print full log so it's visible in GitHub Actions
+        cat $RUNNER_TEMP/xcodebuild.log
+
+        if [ "${BUILD_RESULT:-0}" != "0" ]; then
+          echo ""
+          echo "=========================================="
+          echo "❌ BUILD FAILED (exit code: $BUILD_RESULT)"
+          echo "=========================================="
+          echo ""
+          echo "=== ERRORS ONLY ==="
+          grep -i "error:" $RUNNER_TEMP/xcodebuild.log || true
+          exit $BUILD_RESULT
+        fi
+
+        echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
+
+    - name: Upload build log on failure
+      if: failure()
+      uses: actions/upload-artifact@v6
+      with:
+        name: xcodebuild-log
+        path: ${{ runner.temp }}/xcodebuild.log
+        retention-days: 7
+
+    - name: Create IPA
+      run: |
+        set -euo pipefail
+        APP_PATH=$(find "$BUILD_DIR" -name "*.app" -type d | head -1)
+        if [ -z "$APP_PATH" ]; then
+          echo "❌ .app not found"
+          find "$BUILD_DIR" -maxdepth 6 -type d 2>/dev/null || true
+          exit 1
+        fi
+
+        echo "✅ Found: $APP_PATH"
+        du -sh "$APP_PATH"
+
+        mkdir -p $RUNNER_TEMP/Payload
+        cp -r "$APP_PATH" $RUNNER_TEMP/Payload/
+        cd $RUNNER_TEMP
+        zip -r CompositionHelper.ipa Payload
+        echo "✅ IPA created"
+        ls -lh CompositionHelper.ipa
+
+    - name: Upload IPA
+      uses: actions/upload-artifact@v6
+      with:
+        name: CompositionHelper-unsigned
+        path: ${{ runner.temp }}/CompositionHelper.ipa
+        retention-days: 30
