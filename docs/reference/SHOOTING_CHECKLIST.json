@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "prepare_permission",
+      "group": "拍摄前",
+      "title": "相机能够取景",
+      "detail": "允许相机权限后，确认预览正常、没有黑屏或错误提示。"
+    },
+    {
+      "id": "prepare_lens",
+      "group": "拍摄前",
+      "title": "镜头与画面清晰",
+      "detail": "擦净镜头，确认主体清晰；遇到模糊时调整距离和光线。"
+    },
+    {
+      "id": "prepare_scene",
+      "group": "拍摄前",
+      "title": "主体与拍摄意图明确",
+      "detail": "确定要突出的人或物，观察背景，避免杂物抢占注意力。"
+    },
+    {
+      "id": "prepare_composition",
+      "group": "拍摄前",
+      "title": "选择合适的构图",
+      "detail": "切换所需构图方式，确认辅助线可见且与预期一致。"
+    },
+    {
+      "id": "capture_alignment",
+      "group": "取景拍摄",
+      "title": "主体与辅助线关系正确",
+      "detail": "移动手机，对照辅助线检查主体位置，注意地平线和垂直线。"
+    },
+    {
+      "id": "capture_edges",
+      "group": "取景拍摄",
+      "title": "四周边缘没有意外裁切",
+      "detail": "检查头顶、手脚和画面边缘，保留需要的主体与留白。"
+    },
+    {
+      "id": "capture_light",
+      "group": "取景拍摄",
+      "title": "亮部和暗部保留细节",
+      "detail": "观察主体与背景，避免重要区域过亮、过暗或出现明显偏色。"
+    },
+    {
+      "id": "capture_shutter",
+      "group": "取景拍摄",
+      "title": "完成一次真实拍摄",
+      "detail": "稳定手机后按快门，确认获得拍摄结果，而非仅停留在预览。"
+    },
+    {
+      "id": "review_photo",
+      "group": "拍摄后",
+      "title": "成片清晰且构图符合预期",
+      "detail": "查看真实成片，确认主体、方向、比例和裁切正确，没有明显抖动。"
+    },
+    {
+      "id": "review_color",
+      "group": "拍摄后",
+      "title": "调色结果经过前后对比",
+      "detail": "若使用调色，对照原图检查肤色、文字和细节；未调色可标记不适用。"
+    },
+    {
+      "id": "review_save",
+      "group": "拍摄后",
+      "title": "照片确实出现在系统相册",
+      "detail": "完成保存后，到系统相册打开照片核对，不能只依据成功提示。"
+    },
+    {
+      "id": "review_record",
+      "group": "拍摄后",
+      "title": "记录问题并决定是否重拍",
+      "detail": "对有问题的项目填写备注；必要时重拍，再重新检查。"
+    }
+  ]
+}
