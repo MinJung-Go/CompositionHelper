@@ -18,9 +18,7 @@ actor ColorPhotoService {
               let height = properties[kCGImagePropertyPixelHeight] as? Int,
               width > 0, height > 0 else { throw ColorFailure("照片无法读取，请重新选择") }
         // Avoid terminating the process on a full-resolution allocation spike.
-        guard preview || Double(width)*Double(height) <= 32_000_000 else {
-            throw ColorFailure("原图超过 3200 万像素，暂不支持导出；不会降低分辨率保存")
-        }
+        try PhotoDecodePolicy.validate(width: width, height: height, preview: preview)
         let options: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways:true,
             kCGImageSourceCreateThumbnailWithTransform:true,
             kCGImageSourceThumbnailMaxPixelSize:preview ? previewLimit : max(width,height)]
@@ -65,6 +63,31 @@ actor ColorPhotoService {
         let uiImage = UIImage(cgImage: result)
         guard let jpeg = uiImage.jpegData(compressionQuality: preview ? 0.85 : 0.95) else { throw ColorFailure("图片编码失败") }
         return Rendered(image: uiImage, jpeg: jpeg, changedPercent: Double(changed)*100/Double(w*h), meanDifference:difference/Double(w*h*3))
+    }
+
+    func suggest(_ data: Data) throws -> ColorPlan {
+        let image = try decode(data, preview: true, previewLimit: 1200)
+        var pixels = [UInt8](repeating: 255, count: image.width * image.height * 4)
+        try pixels.withUnsafeMutableBytes { buffer in
+            guard let context = CGContext(data: buffer.baseAddress, width: image.width, height: image.height,
+                bitsPerComponent: 8, bytesPerRow: image.width * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue) else {
+                throw ColorFailure("无法分析照片颜色，请重试")
+            }
+            context.setFillColor(CGColor(gray: 1, alpha: 1))
+            context.fill(CGRect(x: 0, y: 0, width: image.width, height: image.height))
+            context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        }
+        return try OfflineColorAnalyzer.analyze(rgba: pixels)
+    }
+
+    func saveOriginal(_ data: Data) async throws {
+        let permission = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+        guard permission == .authorized || permission == .limited else { throw ColorFailure("请在系统设置中允许添加照片") }
+        try Task.checkCancellation()
+        try await PHPhotoLibrary.shared().performChanges {
+            PHAssetCreationRequest.forAsset().addResource(with: .photo, data: data, options: nil)
+        }
     }
     func save(_ data: Data, plan: ColorPlan, strength: Double) async throws {
         let permission = await PHPhotoLibrary.requestAuthorization(for: .addOnly)

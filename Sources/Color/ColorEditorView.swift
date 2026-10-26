@@ -249,6 +249,9 @@ struct ColorEditorView: View {
                             set: { editor.plan.basic[tool.1] = $0 }), limits: ColorPlan.limits[tool.1]!)
                     }
                     rgbControls
+                    Button("离线基础调整") { editor.applyOffline() }
+                        .disabled(editor.busy || editor.offlinePlan == nil)
+                        .accessibilityIdentifier("offlineAdjustment")
                 }.padding(.top, 20)
             }
             if editor.lastAI != nil {
@@ -339,6 +342,12 @@ struct ColorEditorView: View {
                 adjustment(["青 — 红", "品红 — 绿", "黄 — 蓝"][i],
                     value: Binding(get: { editor.plan.rgb[range][i] }, set: { editor.plan.rgb[range][i] = $0 }), limits: -0.08...0.08)
             }
+            Button("重置 RGB 校色") {
+                editor.checkpoint()
+                editor.plan.rgb = Array(repeating: Array(repeating: 0, count: 3), count: 4)
+                editor.plan.complement = false
+                editor.render()
+            }
         }.disabled(editor.busy)
     }
 }
@@ -413,7 +422,7 @@ private struct StudioSettingsView: View {
                 }
                 Section {
                     Text("点击 AI 调色时，会将照片缩略图发送给所选服务商。手动调色在本机完成。")
-                    Text("密钥只保留在当前编辑器内存中，关闭编辑器后清除。")
+                    Text("密钥仅保留在本次应用运行中，关闭进程后需要重新填写。")
                 }
                 Section { Button("清除密钥", role: .destructive) { key = "" } }
             }

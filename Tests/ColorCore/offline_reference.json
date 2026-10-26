@@ -1,0 +1,201 @@
+[
+  {
+    "name": "dark",
+    "pixels": [
+      [
+        20,
+        20,
+        20
+      ],
+      [
+        20,
+        20,
+        20
+      ],
+      [
+        20,
+        20,
+        20
+      ],
+      [
+        20,
+        20,
+        20
+      ]
+    ],
+    "expected": {
+      "exposure": 0.45,
+      "shadows": 0.18,
+      "highlights": 0,
+      "temperature": 0,
+      "tint": 0,
+      "contrast": 0,
+      "saturation": 0
+    }
+  },
+  {
+    "name": "bright",
+    "pixels": [
+      [
+        240,
+        240,
+        240
+      ],
+      [
+        240,
+        240,
+        240
+      ],
+      [
+        240,
+        240,
+        240
+      ],
+      [
+        240,
+        240,
+        240
+      ]
+    ],
+    "expected": {
+      "exposure": -0.45,
+      "shadows": 0,
+      "highlights": -0.16,
+      "temperature": 0,
+      "tint": 0,
+      "contrast": 0,
+      "saturation": 0
+    }
+  },
+  {
+    "name": "balanced-grey",
+    "pixels": [
+      [
+        117,
+        117,
+        117
+      ],
+      [
+        117,
+        117,
+        117
+      ],
+      [
+        117,
+        117,
+        117
+      ],
+      [
+        117,
+        117,
+        117
+      ]
+    ],
+    "expected": {
+      "exposure": 0.0016470588235295456,
+      "shadows": 0,
+      "highlights": 0,
+      "temperature": 0.0,
+      "tint": 0.0,
+      "contrast": 0.06,
+      "saturation": 0
+    }
+  },
+  {
+    "name": "neutral-cast",
+    "pixels": [
+      [
+        120,
+        130,
+        140
+      ],
+      [
+        125,
+        135,
+        145
+      ],
+      [
+        130,
+        140,
+        150
+      ]
+    ],
+    "expected": {
+      "exposure": -0.08946823529411752,
+      "shadows": 0,
+      "highlights": 0,
+      "temperature": 0.03921568627450985,
+      "tint": 0.0,
+      "contrast": 0.06,
+      "saturation": 0
+    }
+  },
+  {
+    "name": "saturated-sunset",
+    "pixels": [
+      [
+        255,
+        112,
+        32
+      ],
+      [
+        255,
+        112,
+        32
+      ],
+      [
+        255,
+        112,
+        32
+      ],
+      [
+        255,
+        112,
+        32
+      ]
+    ],
+    "expected": {
+      "exposure": -0.10610243137254882,
+      "shadows": 0,
+      "highlights": 0,
+      "temperature": 0,
+      "tint": 0,
+      "contrast": 0.06,
+      "saturation": -0.08
+    }
+  },
+  {
+    "name": "mixed-tones",
+    "pixels": [
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        255,
+        255,
+        255
+      ],
+      [
+        120,
+        120,
+        120
+      ],
+      [
+        160,
+        130,
+        80
+      ]
+    ],
+    "expected": {
+      "exposure": -0.05293647058823525,
+      "shadows": 0.18,
+      "highlights": -0.16,
+      "temperature": 0.0,
+      "tint": 0.0,
+      "contrast": 0,
+      "saturation": 0
+    }
+  }
+]

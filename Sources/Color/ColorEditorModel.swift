@@ -2,6 +2,12 @@ import SwiftUI
 import PhotosUI
 
 @MainActor
+private enum AIColorSession {
+    static var key = ""
+    static var model = "glm-5.3-flash"
+}
+
+@MainActor
 final class ColorEditorModel: ObservableObject {
     @Published var original: UIImage?
     @Published var preview: UIImage?
@@ -9,13 +15,18 @@ final class ColorEditorModel: ObservableObject {
     @Published var timing = ""
     @Published var plan = ColorPlan()
     @Published var strength = 1.0
-    @Published var key = ""
-    @Published var model = "glm-5.3-flash"
+    @Published var key = AIColorSession.key {
+        didSet { AIColorSession.key = key }
+    }
+    @Published var model = AIColorSession.model {
+        didSet { AIColorSession.model = model }
+    }
     @Published var busy = false
     @Published var status = "选择照片开始调色"
     @Published var error: String?
     @Published var difference = ""
     @Published private(set) var lastAI: ColorPlan?
+    @Published private(set) var offlinePlan: ColorPlan?
     @Published private(set) var history: [(ColorPlan, Double)] = []
     private var source: Data?
     private var thumbnail: Data?
@@ -57,9 +68,10 @@ final class ColorEditorModel: ObservableObject {
     }
     private func loadData(_ data: Data) async throws {
         let image = try await photos.render(data, plan: ColorPlan(), strength: 0)
+        let suggestion = try await photos.suggest(data)
         try Task.checkCancellation()
         timing = ""; source = data; thumbnail = image.jpeg; original = image.image; preview = image.image
-        plan = ColorPlan(); strength = 1; lastAI = nil; history = []
+        plan = ColorPlan(); strength = 1; lastAI = nil; offlinePlan = suggestion; history = []
         renderedPlan = plan; renderedStrength = strength; difference = "当前为原图，尚未调色"
         status = "照片已就绪"
     }
@@ -119,6 +131,10 @@ final class ColorEditorModel: ObservableObject {
     }
 
     func reset() { checkpoint(); plan = ColorPlan(); strength = 1; render() }
+    func applyOffline() {
+        guard !busy, let suggestion = offlinePlan else { return }
+        checkpoint(); plan = suggestion; strength = 1; render()
+    }
     func undo() {
         guard let previous = history.popLast() else { return }
         plan = previous.0; strength = previous.1; render()

@@ -108,4 +108,24 @@ check(streamRejects { var d = ColorStreamDecoder(glm: true); _ = try glmSend(&d,
 check(streamRejects { var d = ColorStreamDecoder(glm: true); _ = try glmSend(&d, #"{"basic":{},"# , finish: "stop"); _ = try d.finish() }, "GLM truncated JSON")
 check(streamRejects { var d = ColorStreamDecoder(glm: true); _ = try d.line(#"data: {"error":{"code":"1301","message":"private"}}"#); _ = try d.line("") }, "GLM error envelope")
 check(streamRejects { var d = ColorStreamDecoder(glm: true); _ = try glmSend(&d, #"{"basic":{}}"#, finish: "stop"); _ = try glmSend(&d, "extra") }, "GLM content after stop")
-print("PASS: \(checks) checks (recipe validation, RGB semantics, precision, cross-platform pixels)")
+let offlineCases = try JSONSerialization.jsonObject(with: Data(contentsOf:
+    URL(fileURLWithPath: CommandLine.arguments[2]))) as! [[String: Any]]
+for item in offlineCases {
+    let pixels = item["pixels"] as! [[Int]]
+    let rgba = pixels.flatMap { $0.map { UInt8($0) } + [UInt8(255)] }
+    let result = try OfflineColorAnalyzer.analyze(rgba: rgba)
+    let expected = item["expected"] as! [String: Double]
+    for (key, value) in expected {
+        check(abs((result.basic[key] ?? .infinity) - value) < 0.000001, "offline parity \(item["name"]!)/\(key)")
+    }
+    check(result.scene == "离线基础调整", "offline scene")
+    check(!result.intent.isEmpty, "offline explanation")
+}
+check(streamRejects { _ = try OfflineColorAnalyzer.analyze(rgba: []) }, "offline rejects empty image")
+check(streamRejects { _ = try OfflineColorAnalyzer.analyze(rgba: [1,2,3]) }, "offline rejects incomplete pixel")
+check(!streamRejects { try PhotoDecodePolicy.validate(width: 8000, height: 4000, preview: false) }, "32MP export boundary")
+check(streamRejects { try PhotoDecodePolicy.validate(width: 8001, height: 4000, preview: false) }, "oversized export rejected")
+check(!streamRejects { try PhotoDecodePolicy.validate(width: 8001, height: 4000, preview: true) }, "oversized preview allowed")
+check(streamRejects { try PhotoDecodePolicy.validate(width: Int.max, height: Int.max, preview: false) }, "export check cannot overflow")
+check(streamRejects { try PhotoDecodePolicy.validate(width: 0, height: 4000, preview: true) }, "invalid dimensions")
+print("PASS: \(checks) checks (recipe validation, RGB semantics, precision, cross-platform pixels, offline suggestions, export limits)")

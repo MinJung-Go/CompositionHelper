@@ -3,6 +3,7 @@ import AVFoundation
 
 // MARK: - 实时相机构图视图
 struct CameraCompositionView: View {
+    var onOpenGallery: () -> Void = {}
     @StateObject private var cameraManager = CameraManager()
     @StateObject private var frameAnalyzer = FrameAnalyzer()
 
@@ -17,8 +18,6 @@ struct CameraCompositionView: View {
     @State private var showChecklist = false
     @State private var showCapturedPhoto = false
     @State private var spiralOrientation = 0 // 0=↘ 1=↙ 2=↗ 3=↖
-
-    @Environment(\.dismiss) private var dismiss
 
     private var activeComposition: CompositionType {
         isSmartMode ? (frameAnalyzer.analysisResult?.recommendedType ?? selectedComposition) : selectedComposition
@@ -151,7 +150,7 @@ struct CameraCompositionView: View {
     private var topBar: some View {
         HStack {
             Button {
-                dismiss()
+                onOpenGallery()
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.title2)
@@ -159,7 +158,7 @@ struct CameraCompositionView: View {
                     .padding(12)
                     .background(Color.black.opacity(0.4))
                     .clipShape(Circle())
-            }
+            }.accessibilityLabel("相册构图分析")
 
             Spacer()
 
@@ -232,7 +231,7 @@ struct CameraCompositionView: View {
                 }
 
                 Button {
-                    dismiss()
+                    onOpenGallery()
                 } label: {
                     Image(systemName: "photo.on.rectangle")
                         .font(.title2)
@@ -240,7 +239,7 @@ struct CameraCompositionView: View {
                         .frame(width: 50, height: 50)
                         .background(Color.black.opacity(0.4))
                         .clipShape(Circle())
-                }
+                }.accessibilityLabel("相册构图分析")
             }
             .padding(.bottom, 24)
         }
@@ -384,53 +383,48 @@ struct SubjectTrackingOverlay: View {
 
 // MARK: - 拍照结果预览
 struct CapturedPhotoView: View {
-    @State private var showColor = false
     let image: UIImage
     let onDismiss: () -> Void
+    @State private var source: Data?
+    @State private var saved = false
+    @State private var saving = false
+    @State private var saveError: String?
 
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-
-            Image(uiImage: image)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-
-            VStack {
-                HStack {
-                    Button {
-                        onDismiss()
-                    } label: {
-                        Text("返回")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 10)
-                            .background(Color.black.opacity(0.5))
-                            .cornerRadius(10)
+        Group {
+            if saved, let source = source {
+                ColorEditorView(initialData: source)
+            } else {
+                VStack(spacing: 20) {
+                    Image(uiImage: image).resizable().scaledToFit()
+                    if saving { ProgressView("正在保存原片…") }
+                    if let saveError = saveError {
+                        Text(saveError).foregroundColor(.orange)
+                        Button("重试保存") { Task { await saveOriginal() } }
                     }
-                    Spacer()
-                    Button("智能调色") { showColor = true }
-                        .padding(12).background(Color.black.opacity(0.5)).cornerRadius(10)
-
-                    Button {
-                        UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
-                        onDismiss()
-                    } label: {
-                        Text("保存")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 10)
-                            .background(Color.blue)
-                            .cornerRadius(10)
-                    }
+                    Button("返回相机", action: onDismiss).disabled(saving)
                 }
-                .padding()
-
-                Spacer()
+                .padding().frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.black).foregroundColor(.white)
             }
         }
-        .sheet(isPresented: $showColor) { ColorEditorView(initialData: image.colorEditorSourceData()) }
+        .task { await saveOriginal() }
+    }
+
+    @MainActor private func saveOriginal() async {
+        guard !saving, !saved else { return }
+        guard let data = source ?? image.colorEditorSourceData() else {
+            saveError = "原片无法读取，请返回相机重新拍摄"
+            return
+        }
+        source = data; saving = true; saveError = nil
+        defer { saving = false }
+        do {
+            try await ColorPhotoService().saveOriginal(data)
+            saved = true
+        } catch is CancellationError {
+        } catch {
+            saveError = error.localizedDescription
+        }
     }
 }

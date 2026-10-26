@@ -5,6 +5,7 @@ on:
     branches: [ ios ]
   pull_request:
     branches: [ ios ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,6 +21,9 @@ jobs:
     
     - name: Show Swift version
       run: swift --version
+
+    - name: Color pipeline regression tests
+      run: tools/test-color-core.sh
     
     - name: Build Simulator
       run: |
@@ -36,7 +40,7 @@ jobs:
       timeout-minutes: 8
       run: |
         set -euo pipefail
-        DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; devices=[d for group in json.load(sys.stdin)["devices"].values() for d in group if "iPhone SE" in d["name"]]; print(devices[0]["udid"])')
+        DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; phones=[d for group in json.load(sys.stdin)["devices"].values() for d in group if "iPhone" in d["name"]]; small=[d for d in phones if "iPhone SE" in d["name"]]; print((small or phones)[0]["udid"])')
         xcrun simctl boot "$DEVICE_ID"
         xcrun simctl bootstatus "$DEVICE_ID" -b
         xcrun simctl status_bar "$DEVICE_ID" override --time '9:41' --batteryState charged --batteryLevel 100
@@ -76,9 +80,6 @@ jobs:
       run: |
         plutil -lint Info.plist
     
-    - name: Color pipeline regression tests
-      run: tools/test-color-core.sh
-
     - name: Upload Build Artifacts
       if: success()
       uses: actions/upload-artifact@v6

@@ -3,6 +3,7 @@ import PhotosUI
 
 // MARK: - 相册模式主视图
 struct CompositionHelperView: View {
+    var onOpenCamera: (() -> Void)? = nil
     @State private var selectedImage: UIImage?
     @State private var showColorStudio = false
     @State private var selectedComposition: CompositionType = .ruleOfThirds
@@ -117,7 +118,8 @@ struct CompositionHelperView: View {
 
                     HStack(spacing: 16) {
                         Button {
-                            showCamera = true
+                            if let onOpenCamera = onOpenCamera { onOpenCamera() }
+                            else { showCamera = true }
                         } label: {
                             Label("拍照", systemImage: "camera")
                                 .font(.headline)

@@ -5,14 +5,11 @@ struct ContentView: View {
     @State private var showGalleryMode = false
 
     var body: some View {
-        ZStack {
-            // 默认：实时相机模式
-            CameraCompositionView()
-
-            // 导航到相册模式
+        Group {
             if showGalleryMode {
-                CompositionHelperView()
-                    .transition(.move(edge: .trailing))
+                CompositionHelperView(onOpenCamera: { showGalleryMode = false })
+            } else {
+                CameraCompositionView(onOpenGallery: { showGalleryMode = true })
             }
         }
     }

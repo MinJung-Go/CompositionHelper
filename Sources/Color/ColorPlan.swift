@@ -1,5 +1,62 @@
 import Foundation
 
+enum PhotoDecodePolicy {
+    static let maximumExportPixels = 32_000_000
+
+    static func validate(width: Int, height: Int, preview: Bool) throws {
+        guard width > 0, height > 0 else { throw ColorFailure("图片尺寸无效") }
+        guard preview || width <= maximumExportPixels / height else {
+            throw ColorFailure("原图超过 3200 万像素，暂不支持导出；不会降低分辨率保存")
+        }
+    }
+}
+
+/// Uses the same conservative, local-only statistics as Android's ColorAdjustmentEngine.
+enum OfflineColorAnalyzer {
+    static func analyze(rgba: [UInt8]) throws -> ColorPlan {
+        guard !rgba.isEmpty, rgba.count % 4 == 0 else { throw ColorFailure("图片像素无效") }
+        let count = Double(rgba.count / 4)
+        var luminance = 0.0, squared = 0.0, chroma = 0.0
+        var dark = 0.0, bright = 0.0, neutral = 0.0
+        var red = 0.0, green = 0.0, blue = 0.0
+        for i in stride(from: 0, to: rgba.count, by: 4) {
+            let r = Double(rgba[i]) / 255, g = Double(rgba[i+1]) / 255, b = Double(rgba[i+2]) / 255
+            let y = 0.2126*r + 0.7152*g + 0.0722*b
+            luminance += y; squared += y*y
+            if y < 0.2 { dark += 1 }
+            if y > 0.85 { bright += 1 }
+            let spread = max(r, max(g, b)) - min(r, min(g, b))
+            chroma += spread
+            if (0.2...0.8).contains(y), spread < 0.12 {
+                red += r; green += g; blue += b; neutral += 1
+            }
+        }
+        let mean = luminance / count
+        let exposure = min(0.45, max(-0.45, (0.46 - mean) * 1.4))
+        let shadows = dark/count > 0.2 ? 0.18 : 0
+        let highlights = bright/count > 0.12 ? -0.16 : 0
+        let temperature = neutral > count*0.15 ? min(0.04, max(-0.04, (blue-red)/neutral*0.5)) : 0
+        let tint = neutral > count*0.15 ? min(0.03, max(-0.03, (green-(red+blue)/2)/neutral*0.5)) : 0
+        let variance = max(0, squared/count - mean*mean)
+        let contrast = variance < 0.015 && (0.25...0.7).contains(mean) ? 0.06 : 0
+        let saturation = chroma/count > 0.4 ? -0.08 : 0
+        var notes: [String] = []
+        if exposure > 0.08 { notes.append("适度提亮画面") }
+        if exposure < -0.08 { notes.append("适度降低曝光") }
+        if shadows > 0 { notes.append("提亮阴影") }
+        if highlights < 0 { notes.append("压低高光亮度") }
+        if abs(temperature) > 0.005 || abs(tint) > 0.005 { notes.append("轻微校正中性色偏色") }
+        if contrast > 0 { notes.append("适度增强对比度") }
+        if saturation < 0 { notes.append("减轻过度饱和") }
+        var plan = ColorPlan()
+        plan.basic = ["exposure": exposure, "contrast": contrast, "shadows": shadows,
+                      "highlights": highlights, "temperature": temperature, "tint": tint, "saturation": saturation]
+        plan.scene = "离线基础调整"
+        plan.intent = notes.isEmpty ? "画面较均衡，保留原有色调" : notes.joined(separator: "，")
+        return plan
+    }
+}
+
 struct ColorFailure: LocalizedError {
     let message: String
     var errorDescription: String? { message }

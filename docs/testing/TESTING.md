@@ -56,7 +56,7 @@ xcodebuild build -project CompositionHelper.xcodeproj -scheme CompositionHelper 
 
 - `--review-color`：载入城市样片的编辑器。
 - `--review-color --review-empty`：空状态及样片区。
-- `--review-checklist`：真人清单页面；该入口属于本轮尚未完成云端编译的新代码。
+- `--review-checklist`：真人清单页面；截图只用于布局检查，不自动填写真人验收结果。
 
 CI 截图上传为 `editor-review`，IPA 上传为 `CompositionHelper-unsigned`。iOS lint 步骤允许失败，不能把 workflow 绿色等同于零 lint 违规。没有为真人清单添加 iOS UI 自动交互测试；截图仅验证当时画面，不能证明持久化、分享或实际保存成功。
 
