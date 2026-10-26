@@ -228,6 +228,7 @@ internal fun ColorEditorContent(uri: Uri, onBack: () -> Unit,
                 ColorPhotoStore.save(context, uri, exportPlan, exportStrength)
                 notice = "调色副本已保存到相册，原片保留"
             } catch (e: CancellationException) { throw e
+            } catch (e: IllegalArgumentException) { actionError = e.message ?: "照片无法导出，请换一张照片"
             } catch (e: Exception) { actionError = "保存失败，请检查相册权限和剩余空间后重试"
             } catch (e: OutOfMemoryError) { actionError = "原图导出内存不足，请关闭其他应用后重试"
             } finally { saving = false }

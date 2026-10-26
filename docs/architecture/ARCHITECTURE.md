@@ -41,7 +41,7 @@ Android 源码根目录为 `app/src/main/java/com/example/compositionhelper/`，
 
 Android 默认进入 `camera`，另有 `gallery`、`samples`、`color?uri=...` 路由。快门保存原片后把 URI 交给调色页面。清单作为相机上的全屏 Dialog，不属于单独导航路由。
 
-iOS 默认展示 `CameraCompositionView`；相机可打开调色 sheet、清单 sheet，以及拍摄结果 fullScreenCover。拍摄结果可以再进入调色。`CompositionHelperView` 静态相册分析页面存在，但 `ContentView.showGalleryMode` 当前没有置为 true 的路径，相机底部相册图标调用 dismiss，因此不能把“相册分析主入口”当作已连通。调色页自身的 PhotosPicker 仍可用于导入照片。
+iOS 默认展示 `CameraCompositionView`；相机上的相册按钮进入 `CompositionHelperView`，其中的拍照按钮返回实时相机。快门后先请求相册添加权限并保存原片，成功后自动进入调色；失败显示重试与返回入口，不显示虚假的保存成功。该流程与 Android 的“保存原片 → 调色 → 保存副本”一致。调色页的 PhotosPicker 也可独立导入照片。
 
 ## 4. 实时相机数据流
 
@@ -52,7 +52,7 @@ flowchart TD
     Detection --> Rules[位置规则与构图建议]
     Rules --> Overlay[建议浮层 / 主体框 / 辅助线]
     Shutter[使用者点击快门] --> Capture[原始照片]
-    Capture --> Result[结果页或保存后调色]
+    Capture --> Result[保存原片后进入调色]
 ```
 
 Android 用 CameraX ViewPort 关联预览、检测与照片画幅；几何辅助函数处理旋转和裁剪。退出时关闭检测器及相机会话，过期帧结果有过滤。iOS 在串行 `sessionQueue` 配置 AVFoundation，会话输入复用；Vision 结果回主线程发布。两端的坐标映射实现不同，不能用 Android 几何测试替代 iOS 真机框线对齐检查。
@@ -81,13 +81,13 @@ flowchart TD
 
 Android 的预览通过 `LaunchedEffect` 按源图、配方和强度重启；`renderedRecipe/renderedStrength` 防止保存旧结果。iOS 用任务取消、generation 标识和 `renderedPlan/renderedStrength` 判断 `ready`。两端都保留最多 20 次撤销快照；Android 部分编辑状态支持 Compose 状态恢复，iOS 编辑状态仅属于当前编辑器实例。
 
-Android 使用 IO/Default 调度器读取和计算；iOS 图片工作在 actor，界面状态在 MainActor。当前都是 CPU 像素处理，原尺寸导出仍需实测内存及耗时。iOS 预览最长边 1400，导出超过 3200 万像素会明确拒绝；Android 采用自己的采样规则，不能假定同一预览尺寸。
+Android 使用 IO/Default 调度器读取和计算；iOS 图片工作在 actor，界面状态在 MainActor。当前都是 CPU 像素处理，原尺寸导出仍需实测内存及耗时。两端均拒绝超过 3200 万像素的原尺寸导出，预览仍可打开，不通过偷偷降分辨率绕过限制。iOS 预览最长边 1400，Android 使用自己的预览采样规则；离线基础调整使用相同的亮度、中性色和饱和度统计规则，共享固定像素用例验证参数一致。
 
 ## 6. 网络与数据边界
 
 只有主动点击 AI 才发送重新编码的 JPEG 缩略图及提示词；不附原片 EXIF。网络固定到所选 Gemini 或智谱 GLM 的 HTTPS 接口，两端均禁止重定向并限制响应大小。API Key 放请求头，不写进安装包、日志或持久化设置。
 
-Android Key 保存在进程级 `GeminiColorSession`；iOS 保存在当前 `ColorEditorModel`。生命周期并不相同。应用不代理 Apple 账号登录；iloader 属于外部安装工具。详细数据去向见 [数据与隐私](../reference/DATA_PRIVACY.md)。
+Android Key 保存在进程级 `GeminiColorSession`，iOS 使用进程级 `AIColorSession`；两端关闭编辑器后仍可继续使用，退出进程后清除，不写磁盘。应用不代理 Apple 账号登录；iloader 属于外部安装工具。详细数据去向见 [数据与隐私](../reference/DATA_PRIVACY.md)。
 
 ## 7. 真人清单状态
 
@@ -99,7 +99,7 @@ Android 保存到 `shooting_checklist` SharedPreferences；iOS 用标准 UserDef
 
 ## 8. 构建与验证架构
 
-Android：Gradle 单 app 模块，APK 编译、JVM 算法/几何测试、AndroidTest 交互测试三者独立。现有 Android CI 只构建 APK，尚未自动执行全部回归。
+Android：Gradle 单 app 模块，APK 编译、JVM 算法/几何测试、AndroidTest 交互测试三者独立。Android CI 构建应用和设备测试 APK，并执行 JVM 回归和 lint，上传报告；设备测试包编译不等于执行通过。
 
 iOS：Xcode 工程是 App 打包入口；`Package.swift` 不是已经验证的独立分发路径。CI 构建模拟器并截图，运行 Swift 核心检查；另一个 workflow 生成未签名 IPA。Debug 启动参数可以直达编辑器和清单，Release 不启用该检查入口。
 

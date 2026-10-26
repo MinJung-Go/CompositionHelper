@@ -9,7 +9,7 @@
 | 相机帧、构图检测 | AVFoundation/Vision 或 CameraX/ML Kit 端侧处理；当前构图代码不上传这些帧至 Gemini | 无项目实现的云端构图上传 |
 | 导入照片 | 使用所选 URI 或 Data 读取、纠正方向并生成预览；原图不作为 AI 请求直接发送 | 仅使用者点击 AI 时发送重新编码的 JPEG 缩略图及提示词，不附原片 EXIF |
 | 调色配方 | 用于本机预览、撤销与副本导出；无项目云同步 | 无自动上传配方到自建服务 |
-| API Key | Android：进程级会话内存；iOS：编辑器实例内存。可主动清除 | 发给所选 Gemini 或智谱 GLM 固定 HTTPS 接口的请求头；不写入 URL、项目或安装包 |
+| API Key | 双端均为进程级会话内存；关闭编辑器不清除，退出应用进程后清除。可主动清除 | 发给所选 Gemini 或智谱 GLM 固定 HTTPS 接口的请求头；不写入 URL、项目或安装包 |
 | 清单结果、备注 | Android SharedPreferences；iOS UserDefaults / AppStorage；本机保存 | 仅选择“导出检查记录”后通过系统分享操作交给所选接收方 |
 | 保存的照片副本 | 系统相册/MediaStore；JPEG 有损编码，保留原片 | 系统相册自身的同步行为由用户系统设置决定 |
 

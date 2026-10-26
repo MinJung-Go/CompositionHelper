@@ -2,8 +2,26 @@ package com.example.compositionhelper.color
 
 import org.junit.Assert.*
 import org.junit.Test
+import com.google.gson.JsonParser
 
 class ColorAdjustmentEngineTest {
+    @Test fun offlineSuggestionsMatchSharedIosReference() {
+        val text = javaClass.getResource("/color/offline_reference.json")!!.readText()
+        for (fixture in JsonParser.parseString(text).asJsonArray) {
+            val item = fixture.asJsonObject
+            val pixels = item.getAsJsonArray("pixels").map { value ->
+                val rgb = value.asJsonArray.map { it.asInt }
+                (255 shl 24) or (rgb[0] shl 16) or (rgb[1] shl 8) or rgb[2]
+            }.toIntArray()
+            val a = ColorAdjustmentEngine.analyze(pixels).adjustment
+            val actual = mapOf("exposure" to a.exposure, "contrast" to a.contrast,
+                "shadows" to a.shadows, "highlights" to a.highlights,
+                "temperature" to a.temperature, "tint" to a.tint, "saturation" to a.saturation)
+            for ((key, expected) in item.getAsJsonObject("expected").entrySet()) {
+                assertEquals(item.get("name").asString + "/" + key, expected.asDouble, actual.getValue(key).toDouble(), 0.000001)
+            }
+        }
+    }
     @Test fun zeroStrengthAndResetPreserveEveryChannelIncludingAlpha() {
         val pixels = intArrayOf(0, -1, 0x7f123456, 0xff123456.toInt())
         val adjustment = ColorAdjustment(exposure = .5f, shadows = .2f, temperature = .1f)

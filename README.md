@@ -1,11 +1,11 @@
 # CompositionHelper Android
 
-原生摄影构图与拍后调色工具。本分支为 `master`；另一端见 [ios 分支](https://github.com/MinJung-Go/CompositionHelper/tree/ios)。两端各自实现，当前尚未完全统一。
+原生摄影构图与拍后调色工具。本分支为 `master`；另一端见 [ios 分支](https://github.com/MinJung-Go/CompositionHelper/tree/ios)。两端采用原生实现，核心功能按同一约定对齐；代码实现、自动测试和真机验收分别记录。
 
 ## 功能与状态
 
 - 实时相机、19 种构图辅助线、端侧主体检测与构图建议。建议分数不是专业审美评分。
-- 原图导入、四张内置样片、Gemini 拍后调色及本地手动精调、前后对比、撤销、保存副本。
+- 原图导入、四张内置样片、GLM / Gemini 流式拍后调色、离线基础调整及本地手动精调、前后对比、撤销、保存副本。
 - 本轮新增真人拍摄清单：12 项、人工状态、备注、本机保存、导出和重置。
 - 编译与自动检查不替代真人验收；清单代码和旧安装包不能混为同一版本。状态见 [交付记录](docs/testing/RELEASES.md)。
 

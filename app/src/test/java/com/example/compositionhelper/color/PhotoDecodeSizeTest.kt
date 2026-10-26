@@ -4,6 +4,18 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PhotoDecodeSizeTest {
+    @Test fun exportPixelLimitMatchesIosAndCannotOverflow() {
+        assertEquals(1, PhotoDecodeSize.sampleSize(8000, 4000, false))
+        for ((width, height) in listOf(8001 to 4000, Int.MAX_VALUE to Int.MAX_VALUE)) {
+            try {
+                PhotoDecodeSize.sampleSize(width, height, false)
+                fail("Oversized original must not be exported")
+            } catch (e: IllegalArgumentException) {
+                assertTrue(e.message!!.contains("3200"))
+            }
+            assertTrue(PhotoDecodeSize.sampleSize(width, height, true) >= 1)
+        }
+    }
     @Test fun packagedAndCameraPhotosHaveNonzeroBoundedPreviewSamples() {
         for ((w,h) in listOf(1600 to 1200,1067 to 1600,5712 to 4284,4032 to 3024,320 to 240)) {
             val sample = PhotoDecodeSize.sampleSize(w,h,true)
