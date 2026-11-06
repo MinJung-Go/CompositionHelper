@@ -77,6 +77,8 @@ dependencies {
     implementation("com.google.mlkit:pose-detection:18.0.0-beta5")
     implementation("com.google.mlkit:segmentation-selfie:16.0.0-beta5")
 
+    implementation("org.opencv:opencv:4.12.0")
+
     // CameraX
     implementation("androidx.camera:camera-core:1.3.1")
     implementation("androidx.camera:camera-camera2:1.3.1")
