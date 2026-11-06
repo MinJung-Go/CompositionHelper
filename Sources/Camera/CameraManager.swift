@@ -15,14 +15,17 @@ class CameraManager: NSObject, ObservableObject {
     private let photoOutput = AVCapturePhotoOutput()
     let videoDataOutput = AVCaptureVideoDataOutput()
 
+    private let frameQueue = DispatchQueue(label: "camera.frame.queue", qos: .userInitiated)
+
     var frameDelegate: AVCaptureVideoDataOutputSampleBufferDelegate? {
         didSet {
+            let delegate = frameDelegate
             sessionQueue.async { [weak self] in
                 guard let self = self else { return }
-                if let delegate = self.frameDelegate {
+                if let delegate {
                     self.videoDataOutput.setSampleBufferDelegate(
                         delegate,
-                        queue: DispatchQueue(label: "camera.frame.queue", qos: .userInitiated)
+                        queue: self.frameQueue
                     )
                 } else {
                     self.videoDataOutput.setSampleBufferDelegate(nil, queue: nil)

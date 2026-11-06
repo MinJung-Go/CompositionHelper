@@ -16,6 +16,7 @@
 		A1000007 /* AnalysisModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000008 /* AnalysisModels.swift */; };
 		A1000008 /* CameraCompositionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000009 /* CameraCompositionView.swift */; };
 		A1000009 /* FrameAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000A /* FrameAnalyzer.swift */; };
+		A10000F1 /* RealtimeComposition.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000F1 /* RealtimeComposition.swift */; };
 		A100000A /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000B /* CameraManager.swift */; };
 		A100000B /* ShutterButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000C /* ShutterButton.swift */; };
 		A100000C /* RecommendationChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000D /* RecommendationChip.swift */; };
@@ -44,6 +45,7 @@
 		A2000008 /* AnalysisModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisModels.swift; sourceTree = "<group>"; };
 		A2000009 /* CameraCompositionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraCompositionView.swift; sourceTree = "<group>"; };
 		A200000A /* FrameAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameAnalyzer.swift; sourceTree = "<group>"; };
+		A20000F1 /* RealtimeComposition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealtimeComposition.swift; sourceTree = "<group>"; };
 		A200000B /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
 		A200000C /* ShutterButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShutterButton.swift; sourceTree = "<group>"; };
 		A200000D /* RecommendationChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendationChip.swift; sourceTree = "<group>"; };
@@ -151,6 +153,7 @@
 			children = (
 				A2000009 /* CameraCompositionView.swift */,
 				A200000A /* FrameAnalyzer.swift */,
+				A20000F1 /* RealtimeComposition.swift */,
 				A200000B /* CameraManager.swift */,
 			);
 			path = Camera;
@@ -253,6 +256,7 @@
 				A1000007 /* AnalysisModels.swift in Sources */,
 				A1000008 /* CameraCompositionView.swift in Sources */,
 				A1000009 /* FrameAnalyzer.swift in Sources */,
+				A10000F1 /* RealtimeComposition.swift in Sources */,
 				A100000A /* CameraManager.swift in Sources */,
 				A100000B /* ShutterButton.swift in Sources */,
 				A100000C /* RecommendationChip.swift in Sources */,
