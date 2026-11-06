@@ -25,3 +25,8 @@ swiftc Sources/Models/CompositionType.swift Sources/Models/AnalysisModels.swift 
   -o "${TMPDIR:-/tmp}/composition-realtime-tests"
 "${TMPDIR:-/tmp}/composition-realtime-tests"
 ```
+## 合并前相机修复
+
+- [x] iOS 仅在用户点选推荐时切换辅助线和画幅，成片使用当前预览画幅。
+- [x] 会话队列管理启动和停止意图，页面退出后忽略迟到的授权回调。
+- [ ] 真机验证黄金螺旋与正方形画幅、推荐消失、快速进出相机及权限回调。

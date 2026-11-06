@@ -10,6 +10,7 @@ class CameraManager: NSObject, ObservableObject {
 
     let session = AVCaptureSession()
     private let sessionQueue = DispatchQueue(label: "camera.session.queue")
+    private var wantsSessionRunning = false // Accessed only on sessionQueue.
     private var pendingCaptureAspectRatio: CGFloat = 1.0
     private var videoDeviceInput: AVCaptureDeviceInput?
     private let photoOutput = AVCapturePhotoOutput()
@@ -50,101 +51,87 @@ class CameraManager: NSObject, ObservableObject {
         }
     }
 
-    // MARK: - 权限检查
-    func checkPermission() {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-        case .authorized:
-            configureSession()
-        case .notDetermined:
-            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
-                if granted {
-                    self?.configureSession()
-                } else {
-                    DispatchQueue.main.async {
-                        self?.error = .denied
-                    }
-                }
-            }
-        default:
-            DispatchQueue.main.async {
-                self.error = .denied
-            }
-        }
-    }
-
-    // MARK: - 配置会话
-    private func configureSession() {
-        sessionQueue.async { [weak self] in
-            guard let self = self else { return }
-
-            if self.videoDeviceInput != nil {
-                self.startSession()
-                return
-            }
-            self.session.beginConfiguration()
-            self.session.sessionPreset = .photo
-
-            // 添加视频输入
-            guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
-                DispatchQueue.main.async { self.error = .cameraUnavailable }
-                self.session.commitConfiguration()
-                return
-            }
-
-            do {
-                let input = try AVCaptureDeviceInput(device: camera)
-                if self.session.canAddInput(input) {
-                    self.session.addInput(input)
-                    self.videoDeviceInput = input
-                } else {
-                    DispatchQueue.main.async { self.error = .cannotAddInput }
-                    self.session.commitConfiguration()
-                    return
-                }
-            } catch {
-                DispatchQueue.main.async { self.error = .cannotAddInput }
-                self.session.commitConfiguration()
-                return
-            }
-
-            // 添加拍照输出
-            if self.session.canAddOutput(self.photoOutput) {
-                self.session.addOutput(self.photoOutput)
-            }
-
-            // 添加视频帧输出（用于实时分析）
-            self.videoDataOutput.alwaysDiscardsLateVideoFrames = true
-            if self.session.canAddOutput(self.videoDataOutput) {
-                self.session.addOutput(self.videoDataOutput)
-                if let connection = self.videoDataOutput.connection(with: .video) {
-                    connection.videoOrientation = .portrait
-                }
-            }
-
-            self.session.commitConfiguration()
-            self.startSession()
-        }
-    }
-
     // MARK: - 启停会话
     func startSession() {
         sessionQueue.async { [weak self] in
-            guard let self = self, !self.session.isRunning else { return }
-            self.session.startRunning()
-            DispatchQueue.main.async {
-                self.isSessionRunning = self.session.isRunning
+            guard let self else { return }
+            self.wantsSessionRunning = true
+            switch AVCaptureDevice.authorizationStatus(for: .video) {
+            case .authorized:
+                self.configureAndRunSession()
+            case .notDetermined:
+                AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                    self?.sessionQueue.async { [weak self] in
+                        guard let self, self.wantsSessionRunning else { return }
+                        if granted {
+                            self.configureAndRunSession()
+                        } else {
+                            self.publishCameraError(.denied)
+                        }
+                    }
+                }
+            default:
+                self.publishCameraError(.denied)
             }
         }
     }
 
     func stopSession() {
         sessionQueue.async { [weak self] in
-            guard let self = self, self.session.isRunning else { return }
-            self.session.stopRunning()
-            DispatchQueue.main.async {
-                self.isSessionRunning = false
-            }
+            guard let self else { return }
+            self.wantsSessionRunning = false
+            if self.session.isRunning { self.session.stopRunning() }
+            DispatchQueue.main.async { self.isSessionRunning = false }
         }
+    }
+
+    private func configureAndRunSession() {
+        guard wantsSessionRunning else { return }
+        if videoDeviceInput == nil {
+            configureSession()
+        }
+        guard videoDeviceInput != nil, !session.isRunning else { return }
+        session.startRunning()
+        let isRunning = session.isRunning
+        DispatchQueue.main.async { self.isSessionRunning = isRunning }
+    }
+
+    private func configureSession() {
+        session.beginConfiguration()
+        defer { session.commitConfiguration() }
+        session.sessionPreset = .photo
+
+        guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
+            publishCameraError(.cameraUnavailable)
+            return
+        }
+
+        do {
+            let input = try AVCaptureDeviceInput(device: camera)
+            guard session.canAddInput(input) else {
+                publishCameraError(.cannotAddInput)
+                return
+            }
+            session.addInput(input)
+            videoDeviceInput = input
+        } catch {
+            publishCameraError(.cannotAddInput)
+            return
+        }
+
+        if session.canAddOutput(photoOutput) {
+            session.addOutput(photoOutput)
+        }
+
+        videoDataOutput.alwaysDiscardsLateVideoFrames = true
+        if session.canAddOutput(videoDataOutput) {
+            session.addOutput(videoDataOutput)
+            videoDataOutput.connection(with: .video)?.videoOrientation = .portrait
+        }
+    }
+
+    private func publishCameraError(_ error: CameraError) {
+        DispatchQueue.main.async { self.error = error }
     }
 
     // MARK: - 拍照
