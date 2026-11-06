@@ -20,3 +20,7 @@
 - 已核对 OpenCV AAR 的 SDK 元数据。新增 Kotlin 文件通过语法检查。
 - Gradle 8.2 已配置 app 项目，在解析 `:app:compileDebugJavaWithJavac` 依赖时报告 `SDK location not found`。Windows 主机缺完整 Android SDK 34，下载尝试超时或连接中断。未生成 APK，未运行设备测试。
 - SDK 就绪后执行 `./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug --no-daemon --max-workers=2`，再从生成的 APK 验收相机智能模式。
+## 合并前相机修复
+
+- [x] Android 使用专用串行执行器分析帧，预览重绑或退出时解除旧分析器。
+- [ ] 在真机切换智能模式、重绑画幅并快速离开相机，核对预览、触控和拍照响应。
