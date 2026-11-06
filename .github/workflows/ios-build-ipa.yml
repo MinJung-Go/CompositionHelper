@@ -20,14 +20,8 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v5
 
-    - name: Setup Xcode
-      run: |
-        echo "=== Available Xcode versions ==="
-        ls /Applications/ | grep Xcode
-        XCODE_PATH=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
-        echo "Using: $XCODE_PATH"
-        sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
-        xcodebuild -version
+    - name: Show Xcode version
+      run: xcodebuild -version
         swift --version
 
     - name: Verify project

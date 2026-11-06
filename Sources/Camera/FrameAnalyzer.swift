@@ -96,9 +96,9 @@ final class FrameAnalyzer: NSObject, ObservableObject, AVCaptureVideoDataOutputS
                   let polygon = try? contour.polygonApproximation(epsilon: 0.008) else { continue }
             let points = polygon.normalizedPoints
             for (start, end) in zip(points, points.dropFirst()) {
-                let a = CGPoint(x: CGFloat(start.x), y: CGFloat(start.y))
-                let b = CGPoint(x: CGFloat(end.x), y: CGFloat(end.y))
-                if let (visibleStart, visibleEnd) = viewport.segment(a, b) {
+                let normalizedStart = CGPoint(x: CGFloat(start.x), y: CGFloat(start.y))
+                let normalizedEnd = CGPoint(x: CGFloat(end.x), y: CGFloat(end.y))
+                if let (visibleStart, visibleEnd) = viewport.segment(normalizedStart, normalizedEnd) {
                     best = max(best, LightweightAnalyzer.diagonalScore(visibleStart, visibleEnd))
                 }
             }
