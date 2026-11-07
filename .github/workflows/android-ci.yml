@@ -78,11 +78,17 @@ jobs:
           sudo udevadm trigger --name-match=kvm
           image='system-images;android-35;google_apis_ps16k;x86_64'
           sdkmanager 'emulator' "$image"
-          printf 'no\n' | avdmanager create avd --name ci-16k --package "$image"
-          "$ANDROID_HOME/emulator/emulator" -avd ci-16k -no-window -no-audio -no-snapshot -no-boot-anim \
+          export ANDROID_USER_HOME="$RUNNER_TEMP/android-user"
+          export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          avdmanager create avd --name ci-16k --package "$image" --device pixel_6
+          emulator="$ANDROID_HOME/emulator/emulator"
+          "$emulator" -list-avds | grep -Fx ci-16k
+          "$emulator" -avd ci-16k -no-window -no-audio -no-snapshot -no-boot-anim \
             -gpu swiftshader -camera-back emulated > "$RUNNER_TEMP/emulator-16k.log" 2>&1 &
+          emulator_pid=$!
           trap 'adb emu kill || true; tail -n 30 "$RUNNER_TEMP/emulator-16k.log"' EXIT
-          timeout 240s bash -c 'adb wait-for-device; until [ "$(adb shell getprop sys.boot_completed | tr -d "\r")" = 1 ]; do sleep 3; done'
+          timeout 240s bash -c 'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = 1 ]; do kill -0 "$1" || exit 1; sleep 3; done' _ "$emulator_pid"
           page_size=$(adb shell getconf PAGE_SIZE | tr -d '\r')
           echo "Device page size: $page_size bytes"
           test "$page_size" = 16384
