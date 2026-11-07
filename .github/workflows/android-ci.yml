@@ -90,6 +90,7 @@ jobs:
           finish_emulator() {
             if [ "$?" -ne 0 ]; then
               adb logcat -b crash -d -t 160 || true
+              adb logcat -b main -b system -b events -d -t 3000 | grep -Ei 'compositionhelper|AndroidRuntime|am_crash|Fatal signal|linker' | tail -n 100 || true
               adb logcat -d -s CameraManager:D FrameAnalyzer:W FrameLineDetector:W OpenCV/StaticHelper:D || true
               tail -n 30 "$RUNNER_TEMP/emulator-16k.log"
             fi
@@ -104,6 +105,10 @@ jobs:
           adb install -g app/build/outputs/apk/debug/app-debug.apk
           adb install app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
           adb logcat -c
+          adb shell am start -W -n com.example.compositionhelper/.MainActivity
+          sleep 3
+          adb shell pidof com.example.compositionhelper
+          adb shell am force-stop com.example.compositionhelper
           adb shell am instrument -w -e class com.example.compositionhelper.camera.CameraNativeSmokeTest \
             com.example.compositionhelper.test/androidx.test.runner.AndroidJUnitRunner | tee "$RUNNER_TEMP/camera-16k-test.log"
           grep -F 'OK (1 test)' "$RUNNER_TEMP/camera-16k-test.log"
