@@ -2,6 +2,8 @@ package com.example.compositionhelper.camera
 
 import android.graphics.Bitmap
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -23,6 +25,9 @@ class CameraNativeSmokeTest {
     fun opensSmartCameraAndLoadsNativeDetectors() {
         compose.onNodeWithText("手动").performClick()
         compose.onNodeWithText("智能").assertIsDisplayed()
+        compose.waitUntil(timeoutMillis = 15_000) {
+            compose.onAllNodes(hasContentDescription("拍照") and isEnabled()).fetchSemanticsNodes().size == 1
+        }
 
         assertTrue("OpenCV failed to load", OpenCVLoader.initLocal())
         val bitmap = Bitmap.createBitmap(320, 320, Bitmap.Config.ARGB_8888)

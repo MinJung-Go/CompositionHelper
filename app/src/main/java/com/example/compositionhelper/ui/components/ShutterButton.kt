@@ -10,8 +10,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.example.compositionhelper.R
 
 @Composable
 fun ShutterButton(
@@ -19,12 +23,14 @@ fun ShutterButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
+    val label = stringResource(R.string.take_photo)
     Box(
         modifier = modifier
             .size(72.dp)
             .clip(CircleShape)
             .border(4.dp, Color.White, CircleShape)
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick)
+            .semantics { contentDescription = label },
         contentAlignment = Alignment.Center
     ) {
         Box(
