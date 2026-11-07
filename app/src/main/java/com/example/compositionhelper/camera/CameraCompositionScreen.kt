@@ -116,8 +116,6 @@ fun CameraCompositionScreen(
         }
     }
 
-    LaunchedEffect(isSmartMode) { frameAnalyzer.setEnabled(isSmartMode) }
-
     // PreviewView 引用
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
     var captureAreaSize by remember { mutableStateOf(IntSize.Zero) }
@@ -184,6 +182,7 @@ fun CameraCompositionScreen(
             captureAreaSize,
             targetCaptureAspectRatio, cameraRetry
         ) {
+            frameAnalyzer.setEnabled(false)
             val measuredPreviewView = previewView
             if (
                 hasCameraPermission &&
@@ -199,6 +198,7 @@ fun CameraCompositionScreen(
                     enableAnalysis = isSmartMode,
                     analyzer = if (isSmartMode) frameAnalyzer else null
                 )
+                frameAnalyzer.setEnabled(isSmartMode && cameraReady)
                 cameraError = if (cameraReady) null else "相机无法启动，请检查设备相机是否可用"
             }
         }
@@ -285,6 +285,7 @@ fun CameraCompositionScreen(
                             if (capturing) return@Surface
                             isSmartMode = !isSmartMode
                             if (!isSmartMode) {
+                                frameAnalyzer.setEnabled(false)
                                 detectedSubjects = emptyList()
                                 recommendedType = null
                                 guidanceHint = null

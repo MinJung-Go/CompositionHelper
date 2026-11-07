@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ master ]
   workflow_dispatch:
+    inputs:
+      smoke_16k:
+        description: Run the smart camera test on a 16 KiB emulator
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -44,6 +49,9 @@ jobs:
       - name: Build, unit tests and lint
         run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :app:testDebugUnitTest :app:lintDebug --stacktrace --no-daemon --max-workers=2
 
+      - name: Check 16 KiB native alignment
+        run: python3 tools/check_android_native_alignment.py app/build/outputs/apk/debug/app-debug.apk
+
       - name: Upload test and lint reports
         if: always()
         uses: actions/upload-artifact@v6
@@ -61,3 +69,46 @@ jobs:
           name: app-debug
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
+
+      - name: Run 16 KiB smart camera smoke test
+        if: github.event_name == 'workflow_dispatch' && inputs.smoke_16k
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          image='system-images;android-35;google_apis_ps16k;x86_64'
+          sdkmanager 'emulator' "$image"
+          export ANDROID_USER_HOME="$RUNNER_TEMP/android-user"
+          export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          avdmanager create avd --name ci-16k --package "$image" --device pixel_6
+          emulator="$ANDROID_HOME/emulator/emulator"
+          "$emulator" -list-avds | grep -Fx ci-16k
+          "$emulator" -avd ci-16k -no-window -no-audio -no-snapshot -no-boot-anim \
+            -memory 4096 -gpu swiftshader -camera-back emulated > "$RUNNER_TEMP/emulator-16k.log" 2>&1 &
+          emulator_pid=$!
+          finish_emulator() {
+            if [ "$?" -ne 0 ]; then
+              adb logcat -b crash -d -t 160 || true
+              adb logcat -b main -b system -b events -d -t 3000 | grep -Ei 'compositionhelper|AndroidRuntime|am_crash|Fatal signal|linker' | tail -n 100 || true
+              adb logcat -d -s CameraManager:D FrameAnalyzer:W FrameLineDetector:W OpenCV/StaticHelper:D || true
+              tail -n 30 "$RUNNER_TEMP/emulator-16k.log"
+            fi
+            adb emu kill || true
+          }
+          trap finish_emulator EXIT
+          timeout 240s bash -c 'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = 1 ]; do kill -0 "$1" || exit 1; sleep 3; done' _ "$emulator_pid"
+          page_size=$(adb shell getconf PAGE_SIZE | tr -d '\r')
+          echo "Device page size: $page_size bytes"
+          test "$page_size" = 16384
+          adb shell wm dismiss-keyguard
+          adb install -g app/build/outputs/apk/debug/app-debug.apk
+          adb install app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          adb logcat -c
+          adb shell am start -W -n com.example.compositionhelper/.MainActivity
+          sleep 3
+          adb shell pidof com.example.compositionhelper
+          adb shell am force-stop com.example.compositionhelper
+          adb shell am instrument -w -e class com.example.compositionhelper.camera.CameraNativeSmokeTest \
+            com.example.compositionhelper.test/androidx.test.runner.AndroidJUnitRunner | tee "$RUNNER_TEMP/camera-16k-test.log"
+          grep -F 'OK (1 test)' "$RUNNER_TEMP/camera-16k-test.log"

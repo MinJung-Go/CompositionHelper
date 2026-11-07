@@ -29,6 +29,8 @@
 
 ## 架构：architecture
 
+- [双端实时构图检测](architecture/REALTIME_COMPOSITION.md)及[实施清单](testing/REALTIME_COMPOSITION_CHECKLIST.md)。
+
 - [双端技术架构](architecture/ARCHITECTURE.md)：区分现有实现和后续买断/BYOK 设计。
 - [UI 与交互约定](architecture/DESIGN_SYSTEM.md)：统一目标与当前差异。
 - [AI 流式调色](architecture/AI_STREAMING.md)：协议、临时预览、取消与验证边界。

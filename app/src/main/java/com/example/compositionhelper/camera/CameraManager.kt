@@ -15,6 +15,7 @@ import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.util.concurrent.Executors
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -29,6 +30,7 @@ class CameraManager(
         private const val TAG = "CameraManager"
     }
 
+    private val analysisExecutor = Executors.newSingleThreadExecutor()
     private var cameraProvider: ProcessCameraProvider? = null
     private var preview: Preview? = null
     private var imageAnalysis: ImageAnalysis? = null
@@ -71,6 +73,8 @@ class CameraManager(
 
         val useCases = mutableListOf<UseCase>(preview!!, imageCapture!!)
 
+        imageAnalysis?.clearAnalyzer()
+        imageAnalysis = null
         if (enableAnalysis && analyzer != null) {
             imageAnalysis = ImageAnalysis.Builder()
                 .setTargetResolution(android.util.Size(640, 480))
@@ -79,10 +83,7 @@ class CameraManager(
                 .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
                 .build()
                 .also {
-                    it.setAnalyzer(
-                        ContextCompat.getMainExecutor(context),
-                        analyzer
-                    )
+                    it.setAnalyzer(analysisExecutor, analyzer)
                 }
             useCases.add(imageAnalysis!!)
         }
@@ -150,6 +151,8 @@ class CameraManager(
     }
 
     fun shutdown() {
+        imageAnalysis?.clearAnalyzer()
         cameraProvider?.unbindAll()
+        analysisExecutor.shutdown()
     }
 }
