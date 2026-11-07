@@ -24,3 +24,8 @@
 
 - [x] Android 使用专用串行执行器分析帧，预览重绑或退出时解除旧分析器。
 - [ ] 在真机切换智能模式、重绑画幅并快速离开相机，核对预览、触控和拍照响应。
+## Android 16 KB 兼容
+
+- [x] 更新 CameraX 和 ML Kit Object Detection，移除应用源码未使用的姿态与自拍分割依赖。
+- [x] 使用压缩 JNI 库打包，在 Android CI 检查最终 APK 的 ELF 和 ZIP 对齐。
+- [ ] 在 16 KB Android 环境验收 APK 安装、启动和智能相机。

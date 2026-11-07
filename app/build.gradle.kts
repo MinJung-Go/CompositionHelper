@@ -48,6 +48,10 @@ android {
     }
 
     packagingOptions {
+        jniLibs {
+            // AGP 8.2 extracts compressed libraries at install time.
+            useLegacyPackaging = true
+        }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
@@ -73,17 +77,15 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
 
     // ML Kit for Object Detection
-    implementation("com.google.mlkit:object-detection:17.0.1")
-    implementation("com.google.mlkit:pose-detection:18.0.0-beta5")
-    implementation("com.google.mlkit:segmentation-selfie:16.0.0-beta5")
+    implementation("com.google.mlkit:object-detection:17.0.2")
 
     implementation("org.opencv:opencv:4.12.0")
 
     // CameraX
-    implementation("androidx.camera:camera-core:1.3.1")
-    implementation("androidx.camera:camera-camera2:1.3.1")
-    implementation("androidx.camera:camera-lifecycle:1.3.1")
-    implementation("androidx.camera:camera-view:1.3.1")
+    implementation("androidx.camera:camera-core:1.4.2")
+    implementation("androidx.camera:camera-camera2:1.4.2")
+    implementation("androidx.camera:camera-lifecycle:1.4.2")
+    implementation("androidx.camera:camera-view:1.4.2")
 
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.6")
