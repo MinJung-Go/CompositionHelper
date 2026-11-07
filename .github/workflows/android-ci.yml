@@ -87,7 +87,15 @@ jobs:
           "$emulator" -avd ci-16k -no-window -no-audio -no-snapshot -no-boot-anim \
             -gpu swiftshader -camera-back emulated > "$RUNNER_TEMP/emulator-16k.log" 2>&1 &
           emulator_pid=$!
-          trap 'adb emu kill || true; tail -n 30 "$RUNNER_TEMP/emulator-16k.log"' EXIT
+          finish_emulator() {
+            if [ "$?" -ne 0 ]; then
+              adb logcat -b crash -d -t 160 || true
+              adb logcat -d -s CameraManager:D FrameAnalyzer:W FrameLineDetector:W OpenCV/StaticHelper:D || true
+              tail -n 30 "$RUNNER_TEMP/emulator-16k.log"
+            fi
+            adb emu kill || true
+          }
+          trap finish_emulator EXIT
           timeout 240s bash -c 'until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" = 1 ]; do kill -0 "$1" || exit 1; sleep 3; done' _ "$emulator_pid"
           page_size=$(adb shell getconf PAGE_SIZE | tr -d '\r')
           echo "Device page size: $page_size bytes"
