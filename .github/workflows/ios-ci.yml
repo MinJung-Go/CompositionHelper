@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     name: Build and Test
-    runs-on: macos-14
+    runs-on: macos-15
     
     steps:
     - name: Checkout Repository
@@ -25,6 +25,13 @@ jobs:
     - name: Color pipeline regression tests
       run: tools/test-color-core.sh
     
+    - name: Realtime composition regression tests
+      run: |
+        swiftc Sources/Models/CompositionType.swift Sources/Models/AnalysisModels.swift \
+          Sources/Camera/RealtimeComposition.swift Tests/RealtimeComposition/main.swift \
+          -o "$RUNNER_TEMP/composition-realtime-tests"
+        "$RUNNER_TEMP/composition-realtime-tests"
+
     - name: Build Simulator
       run: |
         xcodebuild build \
@@ -92,7 +99,7 @@ jobs:
 
   lint:
     name: Code Linting
-    runs-on: macos-14
+    runs-on: macos-15
     
     steps:
     - name: Checkout Repository

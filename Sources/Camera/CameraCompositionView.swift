@@ -12,6 +12,8 @@ struct CameraCompositionView: View {
     @State private var lineOpacity: Double = 0.7
     @State private var lineColor: Color = .yellow
     @State private var isSmartMode = false
+    @State private var isCameraVisible = false
+    @State private var previewAspectRatio: CGFloat = 1
     @State private var showControls = true
     @State private var showSettings = false
     @State private var showColorStudio = false
@@ -19,23 +21,18 @@ struct CameraCompositionView: View {
     @State private var showCapturedPhoto = false
     @State private var spiralOrientation = 0 // 0=↘ 1=↙ 2=↗ 3=↖
 
-    private var activeComposition: CompositionType {
-        isSmartMode ? (frameAnalyzer.analysisResult?.recommendedType ?? selectedComposition) : selectedComposition
-    }
-
-    private var currentCaptureAspectRatio: CGFloat {
-        activeComposition.captureAspectRatio(isPortrait: true)
-    }
-
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
             GeometryReader { geometry in
-                let activeType = activeComposition
-                let frame = captureFrame(in: geometry.size, for: activeType)
+                let activeType = selectedComposition
+                let aspect = activeType.captureAspectRatio(isPortrait: geometry.size.height >= geometry.size.width)
+                let frame = captureFrame(in: geometry.size, aspectRatio: aspect)
 
                 captureSurface(activeType: activeType)
+                    .onAppear { previewAspectRatio = aspect }
+                    .onChange(of: aspect) { previewAspectRatio = $0 }
                     .frame(width: frame.width, height: frame.height)
                     .clipShape(Rectangle())
                     .position(x: frame.midX, y: frame.midY)
@@ -49,10 +46,16 @@ struct CameraCompositionView: View {
                 Spacer()
 
                 if isSmartMode, let result = frameAnalyzer.analysisResult {
-                    RecommendationChip(result: result)
-                        .padding(.horizontal)
-                        .padding(.bottom, 8)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    Button {
+                        selectedComposition = result.recommendedType
+                    } label: {
+                        RecommendationChip(result: result)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("应用推荐构图和画幅")
+                    .padding(.horizontal)
+                    .padding(.bottom, 8)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
                 if showControls { bottomControls }
@@ -66,14 +69,20 @@ struct CameraCompositionView: View {
             }
         }
         .onAppear {
-            cameraManager.checkPermission()
+            isCameraVisible = true
+            cameraManager.startSession()
+            handleSmartModeChange(isSmartMode)
         }
         .onDisappear {
+            isCameraVisible = false
             cameraManager.stopSession()
-            cameraManager.frameDelegate = nil
+            handleSmartModeChange(false)
         }
         .onChange(of: isSmartMode) { newValue in
-            handleSmartModeChange(newValue)
+            handleSmartModeChange(isCameraVisible && newValue)
+        }
+        .onChange(of: previewAspectRatio) { aspectRatio in
+            frameAnalyzer.configure(enabled: isCameraVisible && isSmartMode, aspectRatio: aspectRatio)
         }
         .sheet(isPresented: $showChecklist) { ShootingChecklistView() }
         .sheet(isPresented: $showColorStudio) { ColorEditorView() }
@@ -107,18 +116,17 @@ struct CameraCompositionView: View {
             if isSmartMode {
                 SubjectTrackingOverlay(
                     subjects: frameAnalyzer.detectedSubjects,
-                    compositionType: frameAnalyzer.analysisResult?.recommendedType ?? selectedComposition
+                    compositionType: activeType
                 )
                 .allowsHitTesting(false)
             }
         }
     }
 
-    private func captureFrame(in size: CGSize, for composition: CompositionType) -> CGRect {
+    private func captureFrame(in size: CGSize, aspectRatio: CGFloat) -> CGRect {
         let topReserve: CGFloat = 88
         let bottomReserve: CGFloat = 260
         let availableHeight = max(1, size.height - topReserve - bottomReserve)
-        let aspectRatio = composition.captureAspectRatio(isPortrait: size.height >= size.width)
         let fullWidthHeight = size.width / aspectRatio
 
         let frameSize: CGSize
@@ -137,13 +145,8 @@ struct CameraCompositionView: View {
     }
 
     private func handleSmartModeChange(_ smart: Bool) {
-        if smart {
-            cameraManager.frameDelegate = frameAnalyzer
-        } else {
-            cameraManager.frameDelegate = nil
-            frameAnalyzer.analysisResult = nil
-            frameAnalyzer.detectedSubjects = []
-        }
+        frameAnalyzer.configure(enabled: smart, aspectRatio: previewAspectRatio)
+        cameraManager.frameDelegate = smart ? frameAnalyzer : nil
     }
 
     // MARK: - 顶栏
@@ -227,7 +230,7 @@ struct CameraCompositionView: View {
                 }
 
                 ShutterButton {
-                    cameraManager.capturePhoto(aspectRatio: currentCaptureAspectRatio)
+                    cameraManager.capturePhoto(aspectRatio: previewAspectRatio)
                 }
 
                 Button {
