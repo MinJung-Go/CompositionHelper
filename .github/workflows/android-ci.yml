@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ master ]
   workflow_dispatch:
+    inputs:
+      smoke_16k:
+        description: Run the smart camera test on a 16 KiB emulator
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -64,3 +69,29 @@ jobs:
           name: app-debug
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
+
+      - name: Run 16 KiB smart camera smoke test
+        if: github.event_name == 'workflow_dispatch' && inputs.smoke_16k
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          image='system-images;android-35;google_apis_ps16k;x86_64'
+          sdkmanager 'emulator' "$image"
+          printf 'no\n' | avdmanager create avd --name ci-16k --package "$image"
+          "$ANDROID_HOME/emulator/emulator" -avd ci-16k -no-window -no-audio -no-snapshot -no-boot-anim \
+            -gpu swiftshader -camera-back emulated > "$RUNNER_TEMP/emulator-16k.log" 2>&1 &
+          trap 'adb emu kill || true; tail -n 30 "$RUNNER_TEMP/emulator-16k.log"' EXIT
+          timeout 240s bash -c 'adb wait-for-device; until [ "$(adb shell getprop sys.boot_completed | tr -d "\r")" = 1 ]; do sleep 3; done'
+          page_size=$(adb shell getconf PAGE_SIZE | tr -d '\r')
+          echo "Device page size: $page_size bytes"
+          test "$page_size" = 16384
+          adb shell wm dismiss-keyguard
+          adb install -g app/build/outputs/apk/debug/app-debug.apk
+          adb install app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          adb logcat -c
+          adb shell am instrument -w -e class com.example.compositionhelper.camera.CameraNativeSmokeTest \
+            com.example.compositionhelper.test/androidx.test.runner.AndroidJUnitRunner | tee "$RUNNER_TEMP/camera-16k-test.log"
+          grep -F 'OK (1 test)' "$RUNNER_TEMP/camera-16k-test.log"
+          adb logcat -d -s CameraManager:D > "$RUNNER_TEMP/camera-16k-logcat.log"
+          grep -F 'Camera bound with 3 use cases' "$RUNNER_TEMP/camera-16k-logcat.log"
