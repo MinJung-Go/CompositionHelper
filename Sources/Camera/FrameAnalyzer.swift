@@ -17,6 +17,7 @@ final class FrameAnalyzer: NSObject, ObservableObject, AVCaptureVideoDataOutputS
     // Frame timing is owned by the serial AVFoundation delegate queue.
     private var lastGeneration: Int?
     private var lastAnalysisTime: TimeInterval = 0
+    private var portraitSelection = PortraitSelection()
     // Recommendation state is owned by the main queue.
     private var stability = RecommendationStability()
 
@@ -49,6 +50,7 @@ final class FrameAnalyzer: NSObject, ObservableObject, AVCaptureVideoDataOutputS
         guard settings.enabled,
               lastGeneration != settings.generation || now - lastAnalysisTime >= 0.2,
               let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        if lastGeneration != settings.generation { portraitSelection = PortraitSelection() }
         lastGeneration = settings.generation
         lastAnalysisTime = now
 
@@ -57,9 +59,15 @@ final class FrameAnalyzer: NSObject, ObservableObject, AVCaptureVideoDataOutputS
             previewAspect: settings.aspectRatio
         )
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up)
-        let subjects = detectSubjects(with: handler, viewport: viewport)
-        let diagonalScore = detectDiagonal(with: handler, viewport: viewport)
-        let candidate = LightweightAnalyzer.analyze(subjects: subjects, diagonalScore: diagonalScore)
+        let faces = detectPortraits(with: handler, viewport: viewport)
+        let portrait = portraitSelection.update(faces)
+        let subjects = portrait == nil
+            ? detectObjects(with: handler, viewport: viewport)
+            : faces.map(\.subject)
+        let diagonalScore = detectDiagonal(with: handler, viewport: viewport, pixelBuffer: pixelBuffer)
+        let candidate = LightweightAnalyzer.analyze(
+            subjects: subjects, diagonalScore: diagonalScore, portrait: portrait
+        )
 
         DispatchQueue.main.async { [weak self] in
             guard let self, self.snapshot().generation == settings.generation else { return }
@@ -68,29 +76,49 @@ final class FrameAnalyzer: NSObject, ObservableObject, AVCaptureVideoDataOutputS
         }
     }
 
-    private func detectSubjects(with handler: VNImageRequestHandler, viewport: RealtimeViewport) -> [DetectedSubject] {
-        let faces = VNDetectFaceRectanglesRequest()
+    private func detectPortraits(with handler: VNImageRequestHandler, viewport: RealtimeViewport) -> [Portrait] {
+        let request = VNDetectFaceLandmarksRequest()
+        guard (try? handler.perform([request])) != nil else { return [] }
+        return (request.results ?? []).compactMap { observation in
+            let box = observation.boundingBox
+            guard abs(observation.yaw?.doubleValue ?? 0) <= .pi / 5,
+                  let subject = viewport.subject(box, confidence: Double(observation.confidence), type: .person)
+            else { return nil }
+
+            func eyeCenter(_ eye: VNFaceLandmarkRegion2D?) -> CGPoint? {
+                guard let points = eye?.normalizedPoints, !points.isEmpty else { return nil }
+                let count = CGFloat(points.count)
+                let x = points.reduce(0) { $0 + $1.x } / count
+                let y = points.reduce(0) { $0 + $1.y } / count
+                return viewport.point(CGPoint(x: box.minX + x * box.width, y: box.minY + y * box.height))
+            }
+
+            return Portrait(
+                subject: subject, leftEye: eyeCenter(observation.landmarks?.leftEye),
+                rightEye: eyeCenter(observation.landmarks?.rightEye)
+            )
+        }
+    }
+
+    private func detectObjects(with handler: VNImageRequestHandler, viewport: RealtimeViewport) -> [DetectedSubject] {
         let rectangles = VNDetectRectanglesRequest()
         rectangles.minimumSize = 0.1
         rectangles.maximumObservations = 5
-        guard (try? handler.perform([faces, rectangles])) != nil else { return [] }
-
-        let faceSubjects = (faces.results ?? []).compactMap { observation in
-            viewport.subject(observation.boundingBox, confidence: Double(observation.confidence), type: .person)
-        }
-        let rectangleSubjects = (rectangles.results ?? []).compactMap { observation in
+        guard (try? handler.perform([rectangles])) != nil else { return [] }
+        return (rectangles.results ?? []).compactMap { observation in
             viewport.subject(observation.boundingBox, confidence: Double(observation.confidence), type: .object)
         }
-        return faceSubjects + rectangleSubjects
     }
 
-    private func detectDiagonal(with handler: VNImageRequestHandler, viewport: RealtimeViewport) -> Float {
+    private func detectDiagonal(
+        with handler: VNImageRequestHandler, viewport: RealtimeViewport, pixelBuffer: CVPixelBuffer
+    ) -> Float {
         let request = VNDetectContoursRequest()
         request.maximumImageDimension = 320
         guard (try? handler.perform([request])) != nil,
               let observation = request.results?.first else { return 0 }
 
-        var best: Float = 0
+        var segments: [(CGPoint, CGPoint)] = []
         for index in 0..<observation.contourCount {
             guard let contour = try? observation.contour(at: index),
                   let polygon = try? contour.polygonApproximation(epsilon: 0.008) else { continue }
@@ -99,10 +127,35 @@ final class FrameAnalyzer: NSObject, ObservableObject, AVCaptureVideoDataOutputS
                 let normalizedStart = CGPoint(x: CGFloat(start.x), y: CGFloat(start.y))
                 let normalizedEnd = CGPoint(x: CGFloat(end.x), y: CGFloat(end.y))
                 if let (visibleStart, visibleEnd) = viewport.segment(normalizedStart, normalizedEnd) {
-                    best = max(best, LightweightAnalyzer.diagonalScore(visibleStart, visibleEnd))
+                    segments.append((visibleStart, visibleEnd))
                 }
             }
         }
-        return best
+        guard !segments.isEmpty, CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly) == kCVReturnSuccess else {
+            return 0
+        }
+        defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
+        let format = CVPixelBufferGetPixelFormatType(pixelBuffer)
+        let planar = format == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange ||
+            format == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+        guard planar || format == kCVPixelFormatType_32BGRA else { return 0 }
+        let address = planar
+            ? CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0)
+            : CVPixelBufferGetBaseAddress(pixelBuffer)
+        guard let data = address?.assumingMemoryBound(to: UInt8.self) else { return 0 }
+        let width = planar ? CVPixelBufferGetWidthOfPlane(pixelBuffer, 0) : CVPixelBufferGetWidth(pixelBuffer)
+        let height = planar ? CVPixelBufferGetHeightOfPlane(pixelBuffer, 0) : CVPixelBufferGetHeight(pixelBuffer)
+        let stride = planar
+            ? CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0)
+            : CVPixelBufferGetBytesPerRow(pixelBuffer)
+        guard width > 0, height > 0 else { return 0 }
+        return DiagonalEvidence.score(segments) { x, y in
+            let point = viewport.imagePoint(CGPoint(x: x, y: y))
+            let row = Int(((1 - point.y) * CGFloat(height - 1)).rounded()) * stride
+            let column = Int((point.x * CGFloat(width - 1)).rounded())
+            if planar { return Int(data[row + column]) }
+            let offset = row + 4 * column
+            return (29 * Int(data[offset]) + 150 * Int(data[offset + 1]) + 77 * Int(data[offset + 2])) / 256
+        }
     }
 }
