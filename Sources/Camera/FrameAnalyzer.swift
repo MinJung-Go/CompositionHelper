@@ -88,9 +88,9 @@ final class FrameAnalyzer: NSObject, ObservableObject, AVCaptureVideoDataOutputS
             func eyeCenter(_ eye: VNFaceLandmarkRegion2D?) -> CGPoint? {
                 guard let points = eye?.normalizedPoints, !points.isEmpty else { return nil }
                 let count = CGFloat(points.count)
-                let x = points.reduce(0) { $0 + $1.x } / count
-                let y = points.reduce(0) { $0 + $1.y } / count
-                return viewport.point(CGPoint(x: box.minX + x * box.width, y: box.minY + y * box.height))
+                let meanX = points.reduce(0) { $0 + $1.x } / count
+                let meanY = points.reduce(0) { $0 + $1.y } / count
+                return viewport.point(CGPoint(x: box.minX + meanX * box.width, y: box.minY + meanY * box.height))
             }
 
             return Portrait(
@@ -149,8 +149,8 @@ final class FrameAnalyzer: NSObject, ObservableObject, AVCaptureVideoDataOutputS
             ? CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0)
             : CVPixelBufferGetBytesPerRow(pixelBuffer)
         guard width > 0, height > 0 else { return 0 }
-        return DiagonalEvidence.score(segments) { x, y in
-            let point = viewport.imagePoint(CGPoint(x: x, y: y))
+        return DiagonalEvidence.score(segments) { viewportX, viewportY in
+            let point = viewport.imagePoint(CGPoint(x: viewportX, y: viewportY))
             let row = Int(((1 - point.y) * CGFloat(height - 1)).rounded()) * stride
             let column = Int((point.x * CGFloat(width - 1)).rounded())
             if planar { return Int(data[row + column]) }

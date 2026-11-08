@@ -124,31 +124,31 @@ enum DiagonalEvidence {
     private struct Edge {
         let start: CGPoint
         let end: CGPoint
-        let ux: CGFloat
-        let uy: CGFloat
+        let unitX: CGFloat
+        let unitY: CGFloat
         let length: CGFloat
     }
 
     static func score(_ segments: [(CGPoint, CGPoint)], luma: (CGFloat, CGFloat) -> Int) -> Float {
         let edges = segments.compactMap { segment -> Edge? in
             let (start, end) = segment.0.x <= segment.1.x ? segment : (segment.1, segment.0)
-            let dx = end.x - start.x
-            let dy = end.y - start.y
-            let length = hypot(dx, dy)
-            guard length >= 0.09, abs(dy) >= 0.41 * dx, dx >= 0.41 * abs(dy) else { return nil }
-            return Edge(start: start, end: end, ux: dx / length, uy: dy / length, length: length)
+            let deltaX = end.x - start.x
+            let deltaY = end.y - start.y
+            let length = hypot(deltaX, deltaY)
+            guard length >= 0.09, abs(deltaY) >= 0.41 * deltaX, deltaX >= 0.41 * abs(deltaY) else { return nil }
+            return Edge(start: start, end: end, unitX: deltaX / length, unitY: deltaY / length, length: length)
         }
         var best: Float = 0
         for seed in edges.sorted(by: { $0.length > $1.length }).prefix(24) {
-            let nx = -seed.uy
-            let ny = seed.ux
+            let normalX = -seed.unitY
+            let normalY = seed.unitX
             func offset(_ point: CGPoint) -> CGFloat {
-                (point.x - seed.start.x) * nx + (point.y - seed.start.y) * ny
+                (point.x - seed.start.x) * normalX + (point.y - seed.start.y) * normalY
             }
             func projection(_ point: CGPoint) -> CGFloat {
-                (point.x - seed.start.x) * seed.ux + (point.y - seed.start.y) * seed.uy
+                (point.x - seed.start.x) * seed.unitX + (point.y - seed.start.y) * seed.unitY
             }
-            func alignment(_ edge: Edge) -> CGFloat { edge.ux * seed.ux + edge.uy * seed.uy }
+            func alignment(_ edge: Edge) -> CGFloat { edge.unitX * seed.unitX + edge.unitY * seed.unitY }
 
             guard abs(offset(CGPoint(x: 0.5, y: 0.5))) <= 0.15 else { continue }
             let parallelOffsets = edges.filter {
@@ -191,24 +191,25 @@ enum DiagonalEvidence {
     ) -> Float {
         let extent = last - first
         guard extent >= 0.53, covered >= 0.71 * extent else { return 0 }
-        let x1 = edge.start.x + edge.ux * first
-        let x2 = edge.start.x + edge.ux * last
-        let y1 = edge.start.y + edge.uy * first
-        let y2 = edge.start.y + edge.uy * last
+        let startX = edge.start.x + edge.unitX * first
+        let endX = edge.start.x + edge.unitX * last
+        let startY = edge.start.y + edge.unitY * first
+        let endY = edge.start.y + edge.unitY * last
         // A perspective line ending at a central vanishing point lacks support on both sides.
-        guard x1 < 0.39, x2 > 0.61, min(y1, y2) < 0.39, max(y1, y2) > 0.61 else { return 0 }
+        guard startX < 0.39, endX > 0.61, min(startY, endY) < 0.39, max(startY, endY) > 0.61 else { return 0 }
 
-        let dx = -0.035 * edge.uy
-        let dy = 0.035 * edge.ux
+        let offsetX = -0.035 * edge.unitY
+        let offsetY = 0.035 * edge.unitX
         var valid = 0
         var brighter = 0
         var darker = 0
         for index in 0..<32 {
             let distance = first + (0.08 + 0.84 * CGFloat(index) / 31) * extent
-            let x = edge.start.x + edge.ux * distance
-            let y = edge.start.y + edge.uy * distance
-            guard x - abs(dx) >= 0, x + abs(dx) <= 1, y - abs(dy) >= 0, y + abs(dy) <= 1 else { continue }
-            let difference = luma(x + dx, y + dy) - luma(x - dx, y - dy)
+            let sampleX = edge.start.x + edge.unitX * distance
+            let sampleY = edge.start.y + edge.unitY * distance
+            guard sampleX - abs(offsetX) >= 0, sampleX + abs(offsetX) <= 1,
+                  sampleY - abs(offsetY) >= 0, sampleY + abs(offsetY) <= 1 else { continue }
+            let difference = luma(sampleX + offsetX, sampleY + offsetY) - luma(sampleX - offsetX, sampleY - offsetY)
             valid += 1
             if difference >= 14 { brighter += 1 }
             if difference <= -14 { darker += 1 }
