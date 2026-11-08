@@ -126,6 +126,10 @@ class CameraManager: NSObject, ObservableObject {
         videoDataOutput.alwaysDiscardsLateVideoFrames = true
         if session.canAddOutput(videoDataOutput) {
             session.addOutput(videoDataOutput)
+            let lumaFormat = kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
+            if videoDataOutput.availableVideoPixelFormatTypes.contains(lumaFormat) {
+                videoDataOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: lumaFormat]
+            }
             videoDataOutput.connection(with: .video)?.videoOrientation = .portrait
         }
     }
