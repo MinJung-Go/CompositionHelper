@@ -49,6 +49,7 @@
 ## 测试与交付：testing
 
 - [构建与测试运行指南](testing/TESTING.md)：完整命令及执行环境。
+- [实时构图识别验证报告](testing/REALTIME_COMPOSITION_VALIDATION.md)及[双端适配清单](testing/REALTIME_COMPOSITION_ACCURACY.md)。
 - [双端功能与测试验收清单](testing/CROSS_PLATFORM_ACCEPTANCE.md)：开发、自测和真人验收状态。
 - [已知问题](testing/KNOWN_ISSUES.md)：当前缺口与复测条件。
 - [版本及交付记录](testing/RELEASES.md)：提交、安装包、校验值与验证证据。

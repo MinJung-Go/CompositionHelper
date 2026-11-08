@@ -3,6 +3,7 @@ package com.example.compositionhelper.camera
 import android.graphics.Rect
 import android.util.Log
 import androidx.camera.core.ImageProxy
+import com.example.compositionhelper.model.PointF
 import org.opencv.android.OpenCVLoader
 import org.opencv.core.CvType
 import org.opencv.core.Mat
@@ -42,15 +43,17 @@ internal class FrameLineDetector {
                 grayscale.create(height, width, CvType.CV_8UC1)
                 grayscale.put(0, 0, luma)
                 lsd.detect(grayscale, segments)
-                var best = 0f
-                for (row in 0 until segments.rows()) {
+                val edges = List(segments.rows()) { row ->
                     val segment = segments.get(row, 0)
-                    best = maxOf(best, LightweightAnalyzer.diagonalScore(
-                        segment[0].toFloat() / width, segment[1].toFloat() / height,
-                        segment[2].toFloat() / width, segment[3].toFloat() / height
-                    ))
+                    FrameSegment(
+                        PointF(segment[0].toFloat() / width, segment[1].toFloat() / height),
+                        PointF(segment[2].toFloat() / width, segment[3].toFloat() / height)
+                    )
                 }
-                best
+                DiagonalEvidence.score(edges) { x, y ->
+                    val index = (y * (height - 1)).roundToInt() * width + (x * (width - 1)).roundToInt()
+                    luma[index].toInt() and 0xff
+                }
             } finally {
                 grayscale.release()
                 segments.release()

@@ -10,14 +10,18 @@ internal object LightweightAnalyzer {
         PointF(1f / 3f, 2f / 3f), PointF(2f / 3f, 2f / 3f)
     )
 
-    fun recommend(subjects: List<DetectedSubject>, diagonalScore: Float): FrameAnalysisResult {
+    fun recommend(
+        subjects: List<DetectedSubject>,
+        diagonalScore: Float,
+        portraitAnchor: PointF? = null
+    ): FrameAnalysisResult {
         var type = if (diagonalScore > 0f) CompositionType.DIAGONAL else null
         var score = diagonalScore
         var hint: String? = null
         val subject = subjects.maxByOrNull { it.boundingBox.width() * it.boundingBox.height() }
-        if (subject != null) {
-            val x = subject.boundingBox.centerX()
-            val y = subject.boundingBox.centerY()
+        val anchor = portraitAnchor ?: subject?.boundingBox?.let { PointF(it.centerX(), it.centerY()) }
+        if (anchor != null) {
+            val (x, y) = anchor
             val centerDistance = hypot(x - 0.5f, y - 0.5f)
             val third = thirdPoints.minBy { hypot(x - it.x, y - it.y) }
             val thirdDistance = hypot(x - third.x, y - third.y)
@@ -43,16 +47,64 @@ internal object LightweightAnalyzer {
         return "让主体在画面中稍微${horizontal}${vertical}移动"
     }
 
-    fun diagonalScore(x1: Float, y1: Float, x2: Float, y2: Float): Float {
-        val dx = abs(x1 - x2)
-        val dy = abs(y1 - y2)
-        val span = hypot(dx, dy) / hypot(1f, 1f)
-        if (minOf(dx, dy) < 0.24f || span < 0.38f) return 0f
-        val descendingError = maxOf(abs(x1 - y1), abs(x2 - y2))
-        val ascendingError = maxOf(abs(x1 + y1 - 1f), abs(x2 + y2 - 1f))
-        if (minOf(descendingError, ascendingError) > 0.12f) return 0f
-        return 0.70f + 0.20f * span.coerceAtMost(1f)
+}
+
+internal data class Portrait(val subject: DetectedSubject, val anchor: PointF) {
+    companion object {
+        fun fromEyes(subject: DetectedSubject, leftEye: PointF?, rightEye: PointF?): Portrait? {
+            if (leftEye == null || rightEye == null) return null
+            val box = subject.boundingBox
+            val x = (leftEye.x + rightEye.x) / 2
+            val y = (leftEye.y + rightEye.y) / 2
+            val spacing = abs(leftEye.x - rightEye.x)
+            if (box.width() < 0.10f || box.height() < 0.10f ||
+                !listOf(leftEye, rightEye).all {
+                    it.x in box.left..box.right && it.y in box.top..box.bottom
+                } ||
+                spacing !in (box.width() * 0.16f)..(box.width() * 0.85f) ||
+                abs(leftEye.y - rightEye.y) > spacing * 0.65f
+            ) return null
+            return Portrait(subject, PointF(x, y))
+        }
     }
+}
+
+/** Keeps the current face when confidence or apparent area changes between frames. */
+internal class PortraitSelection {
+    private var selected: Portrait? = null
+    private var missed = false
+
+    fun reset() {
+        selected = null
+        missed = false
+    }
+
+    fun update(faces: List<Portrait>): Portrait? {
+        val previous = selected
+        if (previous != null) {
+            val match = faces.filter {
+                it.subject.boundingBox.intersects(previous.subject.boundingBox) &&
+                    distance(it.anchor, previous.anchor) <= 0.12f
+            }.minByOrNull { distance(it.anchor, previous.anchor) }
+            if (match != null) {
+                selected = match
+                missed = false
+                return match
+            }
+            if (!missed) {
+                missed = true
+                return null
+            }
+        }
+        missed = false
+        return faces.maxWithOrNull(
+            compareBy<Portrait> { it.subject.boundingBox.width() * it.subject.boundingBox.height() }
+                .thenBy { -distance(it.anchor, PointF(0.5f, 0.5f)) }
+                .thenBy { -it.anchor.x }
+        ).also { selected = it }
+    }
+
+    private fun distance(a: PointF, b: PointF) = hypot(a.x - b.x, a.y - b.y)
 }
 
 internal class RecommendationStability {

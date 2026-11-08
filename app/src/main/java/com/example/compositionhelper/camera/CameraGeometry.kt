@@ -1,5 +1,6 @@
 package com.example.compositionhelper.camera
 
+import com.example.compositionhelper.model.PointF
 import com.example.compositionhelper.model.RectF
 
 /** Coordinates in an upright analysis image, mapped to the rotated CameraX viewport crop. */
@@ -18,6 +19,15 @@ object CameraGeometry {
         if (right<=left || bottom<=top) return null
         return RectF((left-crop.left)/crop.width(),(top-crop.top)/crop.height(),
             (right-crop.left)/crop.width(),(bottom-crop.top)/crop.height())
+    }
+
+    fun toViewport(point: PointF, crop: RectF): PointF? {
+        if (crop.width() <= 0 || crop.height() <= 0 ||
+            point.x !in crop.left..crop.right || point.y !in crop.top..crop.bottom
+        ) return null
+        return PointF(
+            (point.x - crop.left) / crop.width(), (point.y - crop.top) / crop.height()
+        )
     }
     data class Frame(val width: Float,val height: Float,val top: Float)
     fun fit(width: Float,height: Float,top: Float,bottom: Float,aspect: Float): Frame {
